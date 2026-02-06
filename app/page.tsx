@@ -427,17 +427,13 @@ export default function Page() {
                   )}
 
                   {brollResults.map((r, idx) => (
-                    <div
-                      key={idx}
-                      style={{
-                        marginBottom: 16,
-                        border: '1px solid var(--border)',
-                        borderRadius: 12,
-                        padding: 12,
-                        background: 'rgba(10,10,18,0.35)'
-                      }}
-                    >
-                      <div style={{ fontWeight: 700, marginBottom: 8 }}>{idx + 1}. {r.query}</div>
+  <div
+    key={idx}
+    style={{
+      marginBottom: 20
+    }}
+  >
+
 
                       {/* Videos */}
                       <div style={{ fontWeight: 700, marginTop: 6, marginBottom: 8 }}>Videos</div>
