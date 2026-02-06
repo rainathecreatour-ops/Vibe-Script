@@ -91,6 +91,117 @@ export default function Page() {
   const [hookStrength, setHookStrength] =
     useState<'Gentle' | 'Balanced' | 'Strong' | 'Scroll-Stopping'>('Balanced');
   const [audience, setAudience] = useState<'Women' | 'Men' | 'Moms' | 'Teens' | 'Everyone'>('Everyone');
+ 
+  const [includeCaptions, setIncludeCaptions] = useState(true);
+  function formatSrtTime(seconds: number) {
+  const s = Math.max(0, seconds);
+  const hh = Math.floor(s / 3600);
+  const mm = Math.floor((s % 3600) / 60);
+  const ss = Math.floor(s % 60);
+  const ms = Math.floor((s - Math.floor(s)) * 1000);
+
+  const pad = (n: number, w = 2) => String(n).padStart(w, '0');
+  return `${pad(hh)}:${pad(mm)}:${pad(ss)},${pad(ms, 3)}`;
+}
+
+function formatVttTime(seconds: number) {
+  const s = Math.max(0, seconds);
+  const hh = Math.floor(s / 3600);
+  const mm = Math.floor((s % 3600) / 60);
+  const ss = Math.floor(s % 60);
+  const ms = Math.floor((s - Math.floor(s)) * 1000);
+
+  const pad = (n: number, w = 2) => String(n).padStart(w, '0');
+  return `${pad(hh)}:${pad(mm)}:${pad(ss)}.${pad(ms, 3)}`;
+}
+
+function extractScriptBody(text: string) {
+  // Try to remove headings/sections and keep the main script area.
+  // If your output has "## SCRIPT" / "SCRIPT:" we grab that block.
+  const m =
+    text.match(/(^|\n)#{1,3}\s*SCRIPT\s*:?\s*\n([\s\S]*?)(?=\n#{1,3}\s*[A-Z ]+|\n$)/i) ||
+    text.match(/(^|\n)SCRIPT\s*:?\s*\n([\s\S]*?)(?=\n#{1,3}\s*[A-Z ]+|\n$)/i);
+
+  const body = (m?.[2] ?? text).trim();
+
+  // Remove obvious non-script sections if they appear inline
+  return body
+    .replace(/(^|\n)#{1,6}\s*(VISUAL PROMPTS|INSTRUMENTAL|MUSIC PROMPT|HOOKS|CAPTIONS)\b[\s\S]*$/i, '\n')
+    .trim();
+}
+
+function splitIntoCaptionLines(script: string) {
+  // Keep it readable: 1–2 short lines per caption chunk.
+  const cleaned = script
+    .replace(/\s+/g, ' ')
+    .replace(/“|”/g, '"')
+    .trim();
+
+  // Split by sentence-ish boundaries
+  const parts = cleaned.split(/(?<=[.!?])\s+|(?<=,)\s+/).map(s => s.trim()).filter(Boolean);
+
+  const lines: string[] = [];
+  for (const p of parts) {
+    // If a sentence is long, break it
+    if (p.length <= 52) {
+      lines.push(p);
+    } else {
+      // soft wrap
+      let start = 0;
+      while (start < p.length) {
+        lines.push(p.slice(start, start + 52).trim());
+        start += 52;
+      }
+    }
+  }
+  return lines.filter(Boolean);
+}
+
+function buildCaptionsFromScript(fullOutput: string, totalSeconds: number) {
+  const script = extractScriptBody(fullOutput);
+  const lines = splitIntoCaptionLines(script);
+
+  // Avoid too many captions (and too short timings)
+  const MAX_CAPTIONS = 120;
+  const trimmed = lines.slice(0, MAX_CAPTIONS);
+
+  const minDur = 1.2; // seconds per caption (readable)
+  const usableCount = Math.max(1, Math.min(trimmed.length, Math.floor(totalSeconds / minDur)));
+
+  const finalLines = trimmed.slice(0, usableCount);
+  const step = totalSeconds / finalLines.length;
+
+  const cues = finalLines.map((text, i) => {
+    const start = i * step;
+    const end = Math.min(totalSeconds, (i + 1) * step);
+    return { start, end, text };
+  });
+
+  // SRT
+  const srt = cues
+    .map((c, i) => `${i + 1}\n${formatSrtTime(c.start)} --> ${formatSrtTime(c.end)}\n${c.text}\n`)
+    .join('\n');
+
+  // VTT
+  const vtt =
+    `WEBVTT\n\n` +
+    cues
+      .map((c) => `${formatVttTime(c.start)} --> ${formatVttTime(c.end)}\n${c.text}\n`)
+      .join('\n');
+
+  return { srt, vtt };
+}
+
+function downloadTextFile(filename: string, content: string) {
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 
   const [includeHooksCaptions, setIncludeHooksCaptions] = useState(true);
   const [includeBRoll, setIncludeBRoll] = useState(true);
