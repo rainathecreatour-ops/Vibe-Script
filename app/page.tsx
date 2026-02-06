@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo, useState } from 'react';
@@ -104,77 +105,6 @@ export default function Page() {
   const [error, setError] = useState<string>('');
 
   const [brollResults, setBRollResults] = useState<BRollResult[]>([]);
-  const [selectedIds, setSelectedIds] = useState<Record<string, boolean>>({});
-const [lastBRollQueries, setLastBRollQueries] = useState<string[]>([]);
-
-function clipKey(kind: 'video' | 'photo', queryIndex: number, id: number) {
-  return `${kind}:${queryIndex}:${id}`;
-}
-
-function toggleSelected(key: string) {
-  setSelectedIds(prev => ({ ...prev, [key]: !prev[key] }));
-}
-
-function clearSelected() {
-  setSelectedIds({});
-}
-
-function getSelectedClips() {
-  const selected: { kind: 'video' | 'photo'; queryIndex: number; id: number; url: string; pageUrl: string; thumb: string }[] = [];
-
-  brollResults.forEach((r, qi) => {
-    (r.videos || []).forEach(v => {
-      const k = clipKey('video', qi, v.id);
-      if (selectedIds[k]) selected.push({ kind: 'video', queryIndex: qi, id: v.id, url: v.downloadUrl, pageUrl: v.pageUrl, thumb: v.image });
-    });
-    (r.photos || []).forEach(p => {
-      const k = clipKey('photo', qi, p.id);
-      if (selectedIds[k]) selected.push({ kind: 'photo', queryIndex: qi, id: p.id, url: p.downloadUrl, pageUrl: p.pageUrl, thumb: p.image });
-    });
-  });
-
-  return selected;
-}
-
-async function downloadSelected() {
-  const selected = getSelectedClips();
-  if (selected.length === 0) {
-    setError('Select at least 1 clip/photo to download.');
-    return;
-  }
-
-  // 1) Download a manifest so users can always find everything
-  const manifest = {
-    savedAt: new Date().toISOString(),
-    topic,
-    keywords,
-    count: selected.length,
-    items: selected
-  };
-
-  const blob = new Blob([JSON.stringify(manifest, null, 2)], { type: 'application/json' });
-  const manifestUrl = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = manifestUrl;
-  a.download = `vibescript_media_manifest_${Date.now()}.json`;
-  a.click();
-  URL.revokeObjectURL(manifestUrl);
-
-  // 2) Try to trigger browser downloads (some browsers may block multiple auto-downloads)
-  for (const item of selected) {
-    const link = document.createElement('a');
-    link.href = item.url;
-    link.target = '_blank';
-    link.rel = 'noreferrer';
-    // hint filename
-    link.download = `${item.kind}_${item.id}.mp4`;
-    link.click();
-
-    // small delay helps avoid browser blocking
-    await new Promise(res => setTimeout(res, 250));
-  }
-}
-
 
   const input: Input = useMemo(
     () => ({
@@ -220,8 +150,6 @@ async function downloadSelected() {
     try {
       const topicFinal = topic === 'Custom' ? (customTopic || 'Custom Topic') : topic;
       const queries = buildFallbackQueries(topicFinal, keywords).slice(0, 5);
-      setLastBRollQueries(queries);
-
 
       const res = await fetch('/api/broll', {
         method: 'POST',
@@ -521,87 +449,27 @@ setResult(cleaned);
                       {/* Videos */}
                       <div style={{ fontWeight: 700, marginTop: 6, marginBottom: 8 }}>Videos</div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
-                        {(r.videos || []).map(v => {
-  const key = clipKey('video', idx, v.id);
-
-  return (
-    <div
-      key={`v-${v.id}`}
-      style={{
-        position: 'relative', // ✅ REQUIRED
-        border: '1px solid var(--border)',
-        borderRadius: 12,
-        overflow: 'hidden',
-        background: 'rgba(0,0,0,0.25)'
-      }}
-    >
-      {/* ✅ SELECT CHECKBOX */}
-      <label
-        style={{
-          position: 'absolute',
-          top: 8,
-          left: 8,
-          zIndex: 2,
-          display: 'flex',
-          gap: 6,
-          alignItems: 'center',
-          background: 'rgba(0,0,0,0.65)',
-          padding: '6px 8px',
-          borderRadius: 10,
-          cursor: 'pointer'
-        }}
-      >
-        <input
-          type="checkbox"
-          checked={!!selectedIds[key]}
-          onChange={() => toggleSelected(key)}
-          style={{ width: 16, height: 16 }}
-        />
-        <span style={{ fontSize: 12 }}>Select</span>
-      </label>
-
-      {/* THUMBNAIL */}
-      {v.image && (
-        <img
-          src={v.image}
-          alt="video thumbnail"
-          style={{
-            width: '100%',
-            height: 110,
-            objectFit: 'cover',
-            display: 'block'
-          }}
-        />
-      )}
-
-      {/* META */}
-      <div style={{ padding: 10 }}>
-        <div className="small" style={{ marginBottom: 8 }}>
-          {typeof v.duration === 'number' ? `Duration: ${v.duration}s` : 'Video'}
-        </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <a
-            href={v.downloadUrl}
-            target="_blank"
-            rel="noreferrer"
-            style={{ color: 'var(--text)', textDecoration: 'underline' }}
-          >
-            Download
-          </a>
-          <a
-            href={v.pageUrl}
-            target="_blank"
-            rel="noreferrer"
-            style={{ color: 'var(--text)', textDecoration: 'underline' }}
-          >
-            View
-          </a>
-        </div>
-      </div>
-    </div>
-  );
-})}
-
+                        {(r.videos || []).map(v => (
+                          <div key={`v-${v.id}`} style={{ border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', background: 'rgba(0,0,0,0.25)' }}>
+                            {v.image && (
+                              <img src={v.image} alt="video thumbnail" style={{ width: '100%', height: 110, objectFit: 'cover', display: 'block' }} />
+                            )}
+                            <div style={{ padding: 10 }}>
+                              <div className="small" style={{ marginBottom: 8 }}>
+                                {typeof v.duration === 'number' ? `Duration: ${v.duration}s` : 'Video'}
+                              </div>
+                              <div style={{ display: 'flex', gap: 8 }}>
+                                <a href={v.downloadUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--text)', textDecoration: 'underline' }}>
+                                  Download
+                                </a>
+                                <a href={v.pageUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--text)', textDecoration: 'underline' }}>
+                                  View
+                                </a>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
 
                       {/* Photos */}
                       <div style={{ fontWeight: 700, marginTop: 14, marginBottom: 8 }}>Photos</div>
