@@ -349,15 +349,16 @@ async function downloadSelected() {
 // fetch real media first (your /api/broll doesn't depend on the text list anymore)
 await fetchBRollClips();
 
-// remove any B-ROLL SHOT LIST section from what the user sees
+// remove any B-ROLL SHOT LIST section from what the user sees (catch all variants)
 const cleaned = raw
   .replace(
-    /(^|\n)#{1,3}\s*B-ROLL\s*SHOT\s*LIST[\s\S]*?(?=(\n#{1,3}\s*VISUAL\s*PROMPTS|\n#{1,3}\s*VISUAL\s*PROMPTS\s*\(\s*\d+\s*\)|\n#{1,3}\s*INSTRUMENTAL|\nVISUAL\s*PROMPTS|\nINSTRUMENTAL|$))/i,
+    /(^|\n)\s*(?:#{1,6}\s*)?B\s*-\s*ROLL\s*SHOT\s*LIST\s*:?\s*[\s\S]*?(?=(\n\s*(?:#{1,6}\s*)?(?:VISUAL\s*PROMPTS|INSTRUMENTAL|MUSIC\s*PROMPT|CAPTIONS|HOOKS)\b)|$)/i,
     '\n'
   )
   .trim();
 
 setResult(cleaned);
+
 
     } catch (e: any) {
       setError(e?.message || 'Network error');
