@@ -1,0 +1,185 @@
+import { approxWordsForDuration, clampWords } from './validators';
+
+export type Platform =
+  | 'Suno'
+  | 'YouTube'
+  | 'TikTok/Reels'
+  | 'Podcast'
+  | 'Meditation App'
+  | 'ElevenLabs';
+
+export type Topic =
+  | 'Money Affirmations'
+  | 'Motivation'
+  | 'Spiritual (Non-Religious)'
+  | 'Religious (Faith/Bible)'
+  | 'Relatable Everyday'
+  | 'Healing/Anxiety Relief'
+  | 'Confidence/Self-Worth'
+  | 'Custom';
+
+export type Tone =
+  | 'Calm'
+  | 'Powerful'
+  | 'Emotional'
+  | 'Soft & Nurturing'
+  | 'Bold & Confident'
+  | 'Cinematic'
+  | 'Relatable/Conversational';
+
+export type Aspect = 'Vertical 9:16' | 'Square 1:1' | 'Horizontal 16:9';
+
+export type ScriptStructure =
+  | 'Hook → Message → Close'
+  | 'Affirmation Loop'
+  | 'Story-Based'
+  | 'Guided Reflection'
+  | 'Prayer-Style';
+
+export type Input = {
+  topic: Topic;
+  customTopic?: string;
+  tone: Tone;
+  platform: Platform;
+  durationSeconds: number;
+  structure: ScriptStructure;
+  aspect: Aspect;
+  voiceStyle: 'Warm Coach' | 'Soft Narrator' | 'Confident Narrator' | 'Spiritual Guide';
+  hookStrength: 'Gentle' | 'Balanced' | 'Strong' | 'Scroll-Stopping';
+  audience: 'Women' | 'Men' | 'Moms' | 'Teens' | 'Everyone';
+  keywords?: string;
+  notes?: string;
+
+  // ✅ NEW: toggle for hooks/captions
+  includeHooksCaptions: boolean;
+};
+
+function platformGuidance(p: Platform) {
+  switch (p) {
+    case 'TikTok/Reels':
+      return 'Short lines, fast clarity, strong hook in first 2 seconds, punchy closing line.';
+    case 'YouTube':
+      return 'Clear intro, steady pacing, slight repetition for retention.';
+    case 'Podcast':
+      return 'More natural transitions, less “salesy,” more storytelling and depth.';
+    case 'Meditation App':
+      return 'Slower pace, more pauses, soothing language, gentle cues like (pause).';
+    case 'ElevenLabs':
+      return 'Voice-ready narration with natural breath breaks and clean punctuation.';
+    case 'Suno':
+      return 'Instrumental guidance should be music-generator friendly with BPM and vibe notes.';
+    default:
+      return '';
+  }
+}
+
+function topicRules(topic: Topic) {
+  if (topic === 'Religious (Faith/Bible)') {
+    return `Keep it respectful and faith-forward. You may include a short Bible verse reference (no long quotes).`;
+  }
+  if (topic === 'Money Affirmations') {
+    return `Use empowering, believable affirmations (avoid unrealistic claims). Include 1 practical mindset line.`;
+  }
+  return '';
+}
+
+export function buildWordTarget(seconds: number) {
+  const raw = approxWordsForDuration(seconds);
+  return clampWords(raw, 60, 7800); // up to ~60 min cap
+}
+
+export function buildSystemPrompt() {
+  return `
+You are a professional scriptwriter and creative director for creators.
+You write narration-ready scripts optimized for spoken delivery, pacing, and clarity.
+You also generate image prompts and instrumental/music prompts that match the vibe.
+When requested, generate hooks and captions too.
+Return clean output with headings. No markdown tables. No emojis unless requested.
+`.trim();
+}
+
+function hooksCaptionsRulesBlock() {
+  return `
+Hooks & captions rules:
+- Hooks must be 1–2 short sentences max.
+- Hooks should align with the selected hook strength and platform.
+- Captions should be platform-friendly, concise, and natural.
+- Avoid hashtags unless they fit organically (max 3).
+- Do NOT repeat the script verbatim in hooks or captions.
+`.trim();
+}
+
+function hooksCaptionsOutputBlock() {
+  return `
+HOOKS (3):
+- Hook 1 (soft):
+- Hook 2 (balanced):
+- Hook 3 (scroll-stopping):
+
+CAPTIONS (3):
+- Caption 1 (short & clean):
+- Caption 2 (engaging with CTA):
+- Caption 3 (emotional or relatable):
+`.trim();
+}
+
+export function buildUserPrompt(input: Input) {
+  const topicFinal = input.topic === 'Custom' ? (input.customTopic || 'Custom Topic') : input.topic;
+  const targetWords = buildWordTarget(input.durationSeconds);
+
+  const includeHC = !!input.includeHooksCaptions;
+
+  return `
+Create:
+1) A narration-ready script
+${includeHC ? '2) THREE hooks (for short-form + retention)\n3) THREE captions (ready to post)\n' : ''}4) FIVE distinct visual image prompts
+5) An instrumental/music prompt tailored to the chosen platform
+
+Constraints:
+- Topic: ${topicFinal}
+- Audience: ${input.audience}
+- Tone: ${input.tone}
+- Voice Style: ${input.voiceStyle}
+- Structure: ${input.structure}
+- Hook Strength: ${input.hookStrength}
+- Platform: ${input.platform}
+- Target length: ~${targetWords} words (match pacing for ${Math.round(input.durationSeconds / 60)} minutes / ${input.durationSeconds} seconds)
+- Avoid unsafe/medical/legal claims. Keep it practical and uplifting.
+- If Religious: do not quote long verses; brief reference only.
+
+Platform guidance: ${platformGuidance(input.platform)}
+Topic rules: ${topicRules(input.topic)}
+${includeHC ? hooksCaptionsRulesBlock() : ''}
+
+Visuals:
+- Create 5 prompts with different looks:
+  1) Minimal
+  2) Cinematic
+  3) Soft/Calming
+  4) Relatable/Real-life
+  5) Abstract/Symbolic
+- Aspect ratio: ${input.aspect}
+- Each prompt should include: subject, environment, lighting, camera feel, mood keywords, and "no text, no watermark".
+
+Instrumental/music:
+- Provide: mood, BPM range, instruments, energy curve, loopability, and mixing notes for voice-over.
+
+Extra keywords (optional): ${input.keywords || 'N/A'}
+Extra notes (optional): ${input.notes || 'N/A'}
+
+Output format:
+TITLE:
+
+SCRIPT:
+${includeHC ? '\n' + hooksCaptionsOutputBlock() + '\n' : ''}
+
+VISUAL PROMPTS (5):
+1)
+2)
+3)
+4)
+5)
+
+INSTRUMENTAL / MUSIC PROMPT:
+`.trim();
+}
