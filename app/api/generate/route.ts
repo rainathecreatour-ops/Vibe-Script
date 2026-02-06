@@ -18,49 +18,58 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid access code' }, { status: 401 });
     }
 
-    const apiKey = process.env.OPENAI_API_KEY;
+    const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
-      return NextResponse.json({ error: 'Missing OPENAI_API_KEY' }, { status: 500 });
-    }
-
-    // OpenAI Responses API (works well). If you prefer Chat Completions, I can swap it.
-    const resp = await fetch('https://api.openai.com/v1/responses', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: process.env.OPENAI_MODEL || 'gpt-4.1-mini',
-        input: [
-          { role: 'system', content: buildSystemPrompt() },
-          { role: 'user', content: buildUserPrompt(body.input) },
-        ],
-      }),
-    });
-
-    if (!resp.ok) {
-      const text = await resp.text();
       return NextResponse.json(
-        { error: 'Model request failed', details: text.slice(0, 1200) },
+        { error: 'Missing ANTHROPIC_API_KEY' },
         { status: 500 }
       );
     }
 
-    const data = await resp.json();
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-3-5-sonnet-20240620',
+        max_tokens: 4000,
+        messages: [
+          {
+            role: 'user',
+            content: `${buildSystemPrompt()}\n\n${buildUserPrompt(body.input)}`
+          }
+        ]
+      })
+    });
 
-    // Attempt to extract text from Responses API output
-    const out =
-      data?.output_text ||
-      data?.output?.map((o: any) => o?.content?.map((c: any) => c?.text).join('\n')).join('\n') ||
-      '';
-
-    if (!out) {
-      return NextResponse.json({ error: 'Empty output from model' }, { status: 500 });
+    if (!response.ok) {
+      const text = await response.text();
+      return NextResponse.json(
+        { error: 'Anthropic request failed', details: text.slice(0, 1200) },
+        { status: 500 }
+      );
     }
 
-    return NextResponse.json({ result: out });
+    const data = await response.json();
+
+    const output =
+      data?.content?.map((c: any) => c?.text).join('\n') || '';
+
+    if (!output) {
+      return NextResponse.json(
+        { error: 'Empty response from Anthropic' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ result: output });
   } catch (err: any) {
-    return NextResponse.json({ error: 'Server error', details: String(err?.message || err) }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Server error', details: String(err?.message || err) },
+      { status: 500 }
+    );
   }
 }
