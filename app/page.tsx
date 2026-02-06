@@ -160,11 +160,20 @@ export default function Page() {
   }
 
   async function fetchBRollClips(generatedText: string) {
-    const queries = extractBRollQueries(generatedText);
-    if (!includeBRoll || queries.length === 0) {
-      setBRollResults([]);
-      return;
-    }
+   let queries = extractBRollQueries(generatedText);
+
+// If you removed the B-ROLL list from AI output, generate queries here
+if (queries.length === 0) {
+  const base = `${topic} ${keywords || ''}`.trim();
+  queries = [
+    `${base} journaling`,
+    `${base} calm morning`,
+    `${base} hands writing notebook`,
+    `${base} peaceful nature`,
+    `${base} cozy desk workspace`
+  ];
+}
+
 
     setBRollLoading(true);
     try {
