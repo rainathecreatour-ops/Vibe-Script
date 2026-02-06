@@ -227,6 +227,103 @@ function loadSession() {
     setError(e?.message || 'Failed to load session');
   }
 }
+  // --- SELECT + DOWNLOAD STATE ---
+const [selectedMedia, setSelectedMedia] = useState<Record<string, boolean>>({});
+
+function mediaKey(kind: 'video' | 'photo', queryIndex: number, id: number) {
+  return `${kind}:${queryIndex}:${id}`;
+}
+
+function toggleMedia(key: string) {
+  setSelectedMedia(prev => ({ ...prev, [key]: !prev[key] }));
+}
+
+function clearSelection() {
+  setSelectedMedia({});
+}
+
+function selectedCount() {
+  return Object.values(selectedMedia).filter(Boolean).length;
+}
+
+function getSelectedItems() {
+  const items: Array<{
+    kind: 'video' | 'photo';
+    queryIndex: number;
+    id: number;
+    downloadUrl: string;
+    pageUrl: string;
+    thumb: string;
+  }> = [];
+
+  brollResults.forEach((r, qi) => {
+    (r.videos || []).forEach((v: any) => {
+      const k = mediaKey('video', qi, v.id);
+      if (selectedMedia[k]) {
+        items.push({
+          kind: 'video',
+          queryIndex: qi,
+          id: v.id,
+          downloadUrl: v.downloadUrl,
+          pageUrl: v.pageUrl,
+          thumb: v.image,
+        });
+      }
+    });
+
+    (r.photos || []).forEach((p: any) => {
+      const k = mediaKey('photo', qi, p.id);
+      if (selectedMedia[k]) {
+        items.push({
+          kind: 'photo',
+          queryIndex: qi,
+          id: p.id,
+          downloadUrl: p.downloadUrl,
+          pageUrl: p.pageUrl,
+          thumb: p.image,
+        });
+      }
+    });
+  });
+
+  return items;
+}
+
+async function downloadSelected() {
+  const items = getSelectedItems();
+  if (items.length === 0) {
+    setError('Select at least 1 clip/photo first.');
+    return;
+  }
+
+  // 1) Download a manifest file so the user has everything even if browser blocks multi-downloads
+  const manifest = {
+    savedAt: new Date().toISOString(),
+    count: items.length,
+    items,
+  };
+
+  const blob = new Blob([JSON.stringify(manifest, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `vibescript_selected_media_${Date.now()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  // 2) Try to trigger downloads / opens (some browsers may block multiple)
+  for (const item of items) {
+    const link = document.createElement('a');
+    link.href = item.downloadUrl;
+    link.target = '_blank';
+    link.rel = 'noreferrer';
+    link.click();
+    await new Promise(res => setTimeout(res, 250));
+  }
+
+  setError('');
+}
+
 
   async function onGenerate() {
     setError('');
@@ -496,6 +593,23 @@ setResult(cleaned);
                   <div className="small" style={{ marginBottom: 10 }}>
                     {brollLoading ? 'Fetching videos + photos…' : 'Videos and photos appear below. Click Download or View.'}
                   </div>
+                  <div className="row" style={{ marginBottom: 12 }}>
+  <button
+    onClick={downloadSelected}
+    disabled={brollLoading || selectedCount() === 0}
+  >
+    Download Selected ({selectedCount()})
+  </button>
+
+  <button
+    className="secondary"
+    onClick={clearSelection}
+    disabled={brollLoading || selectedCount() === 0}
+  >
+    Clear Selection
+  </button>
+</div>
+
 
                   {brollResults.length === 0 && !brollLoading && (
                     <div className="small">No B-roll results yet. Generate a script with B-roll ON.</div>
