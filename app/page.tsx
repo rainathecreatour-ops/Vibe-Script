@@ -444,15 +444,66 @@ if (queries.length === 0) {
                             </div>
                           </div>
                         ))}
-                      </div>
-                    </div>
-                  ))}
-                </>
-              )}
-            </>
-          )}
-        </div>
-      </div>
+                        {/* PHOTOS */}
+{r.photos && r.photos.length > 0 && (
+  <>
+    <div style={{ fontWeight: 700, marginTop: 12, marginBottom: 8 }}>
+      Photos
     </div>
-  );
-}
+
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+        gap: 10
+      }}
+    >
+      {r.photos.map((p) => (
+        <div
+          key={`photo-${p.id}`}
+          style={{
+            border: '1px solid var(--border)',
+            borderRadius: 12,
+            overflow: 'hidden',
+            background: 'rgba(0,0,0,0.25)'
+          }}
+        >
+          <img
+            src={p.image}
+            alt="photo thumbnail"
+            style={{
+              width: '100%',
+              height: 110,
+              objectFit: 'cover',
+              display: 'block'
+            }}
+          />
+
+          <div style={{ padding: 10, display: 'flex', gap: 10 }}>
+            <a
+              href={p.downloadUrl}
+              target="_blank"
+              rel="noreferrer"
+              style={{ color: 'var(--text)', textDecoration: 'underline' }}
+            >
+              Download
+            </a>
+
+            <a
+              href={p.pageUrl}
+              target="_blank"
+              rel="noreferrer"
+              style={{ color: 'var(--text)', textDecoration: 'underline' }}
+            >
+              View
+            </a>
+          </div>
+        </div>
+      ))}
+    </div>
+  </>
+)}
+
+                     
+         
+
