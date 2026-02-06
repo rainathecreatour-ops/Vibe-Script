@@ -1,4 +1,4 @@
-
+8
 'use client';
 
 import React, { useMemo, useState } from 'react';
@@ -622,6 +622,37 @@ setResult(cleaned);
               </div>
               <span className="badge">{includeHooksCaptions ? 'ON' : 'OFF'}</span>
             </div>
+            <div
+  style={{
+    display: 'flex',
+    gap: 10,
+    alignItems: 'center',
+    border: '1px solid var(--border)',
+    background: 'rgba(10, 10, 18, 0.6)',
+    borderRadius: 12,
+    padding: '10px 12px',
+    marginTop: 10
+  }}
+>
+  <input
+    type="checkbox"
+    checked={includeCaptions}
+    onChange={(e) => setIncludeCaptions(e.target.checked)}
+    style={{ width: 18, height: 18 }}
+  />
+  <div style={{ flex: 1 }}>
+    <div style={{ fontWeight: 700 }}>
+      Generate Captions (from script)
+    </div>
+    <div className="small">
+      Creates SRT/VTT captions from your script and selected duration.
+    </div>
+  </div>
+  <span className="badge">
+    {includeCaptions ? 'ON' : 'OFF'}
+  </span>
+</div>
+
 
             <div
               style={{
@@ -693,6 +724,30 @@ setResult(cleaned);
   <button className="secondary" onClick={loadSession}>
     Load Last Session
   </button>
+ <button
+  className="secondary"
+  onClick={() => {
+    if (!result) return;
+    const { srt } = buildCaptionsFromScript(result, durationSeconds);
+    downloadTextFile(`vibescript_${Date.now()}.srt`, srt);
+  }}
+  disabled={!result || !includeCaptions}
+>
+  Download .srt
+</button>
+
+<button
+  className="secondary"
+  onClick={() => {
+    if (!result) return;
+    const { vtt } = buildCaptionsFromScript(result, durationSeconds);
+    downloadTextFile(`vibescript_${Date.now()}.vtt`, vtt);
+  }}
+  disabled={!result || !includeCaptions}
+>
+  Download .vtt
+</button>
+
 </div>
 
 
