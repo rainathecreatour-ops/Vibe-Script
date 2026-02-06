@@ -67,6 +67,22 @@ async function fetchPexelsPhotos(key: string, q: string, per: number) {
 
   const data = await resp.json();
 
+  return (data?.photos || [])
+    .map((p: any) => ({
+      id: p?.id,
+      image: p?.src?.medium || p?.src?.small || p?.src?.original,
+      pageUrl: p?.url,
+      downloadUrl: p?.src?.large2x || p?.src?.original || p?.src?.large,
+      source: 'pexels-photo' as const,
+    }))
+    .filter((p: any) => p.image && p.downloadUrl);
+}
+
+
+  if (!resp.ok) return [];
+
+  const data = await resp.json();
+
   const photos = (data?.photos || []).map((p: any) => ({
     id: p?.id,
     image: p?.src?.medium || p?.src?.small || p?.src?.original,
