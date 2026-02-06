@@ -172,6 +172,61 @@ export default function Page() {
       setBRollLoading(false);
     }
   }
+// ---- SESSION SAVE/LOAD (LOCAL STORAGE) ----
+const SESSION_KEY = 'vibescript:lastSession:v1';
+
+function saveSession() {
+  try {
+    const payload = {
+      savedAt: new Date().toISOString(),
+      // Don't store your access code in localStorage (safer)
+      input,
+      result,
+      brollResults,
+    };
+    localStorage.setItem(SESSION_KEY, JSON.stringify(payload));
+    setError(''); // clear any old errors
+  } catch (e: any) {
+    setError(e?.message || 'Failed to save session');
+  }
+}
+
+function loadSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) {
+      setError('No saved session found yet.');
+      return;
+    }
+
+    const data = JSON.parse(raw);
+
+    // Restore output + media
+    if (typeof data.result === 'string') setResult(data.result);
+    if (Array.isArray(data.brollResults)) setBRollResults(data.brollResults);
+
+    // Restore input selections (only if present)
+    const i = data.input;
+    if (i?.topic) setTopic(i.topic);
+    if (i?.customTopic) setCustomTopic(i.customTopic);
+    if (i?.tone) setTone(i.tone);
+    if (i?.platform) setPlatform(i.platform);
+    if (typeof i?.durationSeconds === 'number') setDurationSeconds(i.durationSeconds);
+    if (i?.structure) setStructure(i.structure);
+    if (i?.aspect) setAspect(i.aspect);
+    if (i?.voiceStyle) setVoiceStyle(i.voiceStyle);
+    if (i?.hookStrength) setHookStrength(i.hookStrength);
+    if (i?.audience) setAudience(i.audience);
+    if (typeof i?.includeHooksCaptions === 'boolean') setIncludeHooksCaptions(i.includeHooksCaptions);
+    if (typeof i?.includeBRoll === 'boolean') setIncludeBRoll(i.includeBRoll);
+    if (typeof i?.keywords === 'string') setKeywords(i.keywords);
+    if (typeof i?.notes === 'string') setNotes(i.notes);
+
+    setError('');
+  } catch (e: any) {
+    setError(e?.message || 'Failed to load session');
+  }
+}
 
   async function onGenerate() {
     setError('');
