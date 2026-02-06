@@ -50,8 +50,10 @@ export type Input = {
   keywords?: string;
   notes?: string;
 
-  // ✅ NEW: toggle for hooks/captions
   includeHooksCaptions: boolean;
+
+  // ✅ NEW: B-roll toggle
+  includeBRoll: boolean;
 };
 
 function platformGuidance(p: Platform) {
@@ -85,15 +87,15 @@ function topicRules(topic: Topic) {
 
 export function buildWordTarget(seconds: number) {
   const raw = approxWordsForDuration(seconds);
-  return clampWords(raw, 60, 7800); // up to ~60 min cap
+  return clampWords(raw, 60, 7800);
 }
 
 export function buildSystemPrompt() {
   return `
 You are a professional scriptwriter and creative director for creators.
 You write narration-ready scripts optimized for spoken delivery, pacing, and clarity.
-You also generate image prompts and instrumental/music prompts that match the vibe.
-When requested, generate hooks and captions too.
+You generate image prompts and instrumental/music prompts that match the vibe.
+When requested, you also generate hooks/captions and a B-roll shot list.
 Return clean output with headings. No markdown tables. No emojis unless requested.
 `.trim();
 }
@@ -101,11 +103,10 @@ Return clean output with headings. No markdown tables. No emojis unless requeste
 function hooksCaptionsRulesBlock() {
   return `
 Hooks & captions rules:
-- Hooks must be 1–2 short sentences max.
-- Hooks should align with the selected hook strength and platform.
-- Captions should be platform-friendly, concise, and natural.
-- Avoid hashtags unless they fit organically (max 3).
-- Do NOT repeat the script verbatim in hooks or captions.
+- Hooks: 1–2 sentences max each.
+- Captions: concise, post-ready, natural.
+- Max 3 hashtags only if they fit organically.
+- Do NOT repeat the script verbatim.
 `.trim();
 }
 
@@ -123,16 +124,43 @@ CAPTIONS (3):
 `.trim();
 }
 
+function brollRulesBlock() {
+  return `
+B-roll rules:
+- Provide 10 clip ideas (8–12 acceptable).
+- Each line should include: subject + action + setting + shot type (wide/medium/close) + motion (static/slow pan/handheld) + mood.
+- Keep it platform-friendly and easy to source on stock sites or generate with AI video tools.
+- No brand names, no copyrighted characters.
+`.trim();
+}
+
+function brollOutputBlock() {
+  return `
+B-ROLL SHOT LIST (10):
+1)
+2)
+3)
+4)
+5)
+6)
+7)
+8)
+9)
+10)
+`.trim();
+}
+
 export function buildUserPrompt(input: Input) {
   const topicFinal = input.topic === 'Custom' ? (input.customTopic || 'Custom Topic') : input.topic;
   const targetWords = buildWordTarget(input.durationSeconds);
 
   const includeHC = !!input.includeHooksCaptions;
+  const includeBR = !!input.includeBRoll;
 
   return `
 Create:
 1) A narration-ready script
-${includeHC ? '2) THREE hooks (for short-form + retention)\n3) THREE captions (ready to post)\n' : ''}4) FIVE distinct visual image prompts
+${includeHC ? '2) THREE hooks\n3) THREE captions\n' : ''}${includeBR ? `${includeHC ? '' : '2) '}A B-roll shot list\n` : ''}4) FIVE distinct visual image prompts
 5) An instrumental/music prompt tailored to the chosen platform
 
 Constraints:
@@ -143,13 +171,14 @@ Constraints:
 - Structure: ${input.structure}
 - Hook Strength: ${input.hookStrength}
 - Platform: ${input.platform}
-- Target length: ~${targetWords} words (match pacing for ${Math.round(input.durationSeconds / 60)} minutes / ${input.durationSeconds} seconds)
+- Target length: ~${targetWords} words (match pacing for ${Math.round(input.durationSeconds / 60)} minutes)
 - Avoid unsafe/medical/legal claims. Keep it practical and uplifting.
-- If Religious: do not quote long verses; brief reference only.
+- If Religious: no long verse quotes; brief reference only.
 
 Platform guidance: ${platformGuidance(input.platform)}
 Topic rules: ${topicRules(input.topic)}
 ${includeHC ? hooksCaptionsRulesBlock() : ''}
+${includeBR ? brollRulesBlock() : ''}
 
 Visuals:
 - Create 5 prompts with different looks:
@@ -159,19 +188,21 @@ Visuals:
   4) Relatable/Real-life
   5) Abstract/Symbolic
 - Aspect ratio: ${input.aspect}
-- Each prompt should include: subject, environment, lighting, camera feel, mood keywords, and "no text, no watermark".
+- Each prompt: subject, environment, lighting, camera feel, mood keywords, and "no text, no watermark".
 
 Instrumental/music:
 - Provide: mood, BPM range, instruments, energy curve, loopability, and mixing notes for voice-over.
 
-Extra keywords (optional): ${input.keywords || 'N/A'}
-Extra notes (optional): ${input.notes || 'N/A'}
+Extra keywords: ${input.keywords || 'N/A'}
+Extra notes: ${input.notes || 'N/A'}
 
 Output format:
 TITLE:
 
 SCRIPT:
 ${includeHC ? '\n' + hooksCaptionsOutputBlock() + '\n' : ''}
+
+${includeBR ? brollOutputBlock() + '\n' : ''}
 
 VISUAL PROMPTS (5):
 1)
