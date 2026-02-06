@@ -5,9 +5,75 @@ export const runtime = 'nodejs';
 
 type Body = {
   accessCode: string;
-  queries: string[]; // each query = 1 b-roll item
-  perQuery?: number; // clips per b-roll item
+  queries: string[];
+  perQuery?: number;
 };
+
+type VideoClip = {
+  id: number;
+  duration?: number;
+  image: string;       // thumbnail
+  pageUrl: string;     // Pexels page
+  downloadUrl: string; // mp4
+  source: 'pexels-video';
+};
+
+type PhotoClip = {
+  id: number;
+  image: string;       // thumbnail
+  pageUrl: string;     // Pexels page
+  downloadUrl: string; // jpg/original
+  photographer?: string;
+  source: 'pexels-photo';
+};
+
+async function fetchPexelsVideos(key: string, q: string, per: number): Promise<VideoClip[]> {
+  const url = new URL('https://api.pexels.com/videos/search');
+  url.searchParams.set('query', q);
+  url.searchParams.set('per_page', String(per));
+
+  const resp = await fetch(url.toString(), { headers: { Authorization: key } });
+  if (!resp.ok) return [];
+
+  const data = await resp.json();
+  const vids = (data?.videos || []).map((v: any) => {
+    const file =
+      (v?.video_files || []).find((f: any) => f?.file_type === 'video/mp4') ||
+      (v?.video_files || [])[0];
+
+    return {
+      id: v?.id,
+      duration: v?.duration,
+      image: v?.image,
+      pageUrl: v?.url,
+      downloadUrl: file?.link,
+      source: 'pexels-video' as const
+    };
+  });
+
+  return vids.filter((x: VideoClip) => x.image && x.downloadUrl);
+}
+
+async function fetchPexelsPhotos(key: string, q: string, per: number): Promise<PhotoClip[]> {
+  const url = new URL('https://api.pexels.com/v1/search');
+  url.searchParams.set('query', q);
+  url.searchParams.set('per_page', String(per));
+
+  const resp = await fetch(url.toString(), { headers: { Authorization: key } });
+  if (!resp.ok) return [];
+
+  const data = await resp.json();
+  const photos = (data?.photos || []).map((p: any) => ({
+    id: p?.id,
+    image: p?.src?.medium || p?.src?.small || p?.src?.original,
+    pageUrl: p?.url,
+    downloadUrl: p?.src?.original || p?.src?.large2x || p?.src?.large,
+    photographer: p?.photographer,
+    source: 'pexels-photo' as const
+  }));
+
+  return photos.filter((x: PhotoClip) => x.image && x.downloadUrl);
+}
 
 export async function POST(req: Request) {
   try {
@@ -26,52 +92,13 @@ export async function POST(req: Request) {
     const perQuery = Math.min(Math.max(body.perQuery ?? 3, 1), 6);
     const queries = (body.queries || []).map(q => (q || '').trim()).filter(Boolean).slice(0, 12);
 
-    if (queries.length === 0) {
-      return NextResponse.json({ results: [] });
-    }
-
     const results = await Promise.all(
       queries.map(async (q) => {
-        const url = new URL('https://api.pexels.com/videos/search');
-        url.searchParams.set('query', q);
-        url.searchParams.set('per_page', String(perQuery));
-        url.searchParams.set('orientation', 'portrait'); // good default for reels/shorts
-        url.searchParams.set('size', 'medium');
-
-        const resp = await fetch(url.toString(), {
-          headers: { Authorization: key },
-        });
-
-        if (!resp.ok) {
-          const text = await resp.text();
-          return {
-            query: q,
-            error: `Pexels error (${resp.status})`,
-            details: text.slice(0, 500),
-            videos: [],
-          };
-        }
-
-        const data = await resp.json();
-
-        const videos = (data?.videos || []).map((v: any) => {
-          // pick a decent MP4 file (usually the first is fine)
-          const file =
-            (v?.video_files || []).find((f: any) => f?.file_type === 'video/mp4') ||
-            (v?.video_files || [])[0];
-
-          return {
-            id: v?.id,
-            duration: v?.duration,
-            image: v?.image, // thumbnail
-            pageUrl: v?.url, // Pexels page
-            downloadUrl: file?.link, // direct mp4
-            width: file?.width,
-            height: file?.height,
-          };
-        });
-
-        return { query: q, videos };
+        const [videos, photos] = await Promise.all([
+          fetchPexelsVideos(key, q, perQuery),
+          fetchPexelsPhotos(key, q, perQuery),
+        ]);
+        return { query: q, videos, photos };
       })
     );
 
