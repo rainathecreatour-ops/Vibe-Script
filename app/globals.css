@@ -1,11 +1,12 @@
 :root {
-  --bg: #0000ff;        /* TRUE BLUE */
-  --card: #ffffff;
-  --muted: #374151;
-  --text: #111827;      /* DARK TEXT so title shows */
-  --border: #e5e7eb;
-  --accent: #0000ff;    /* buttons match background */
+  --bg: #0000ff;        /* TRUE BLUE background */
+  --card: #000000;      /* BLACK cards */
+  --muted: #6b7280;
+  --text: #000000;      /* BLACK text */
+  --border: #9ca3af;
+  --accent: #0000ff;    /* blue buttons */
 }
+
 
 
 
@@ -13,9 +14,10 @@
 body {
   margin: 0;
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-  background: radial-gradient(1000px 600px at 20% 0%, #1a1033, transparent), var(--bg);
+  background: var(--bg);   /* SOLID BLUE */
   color: var(--text);
 }
+
 
 a { color: inherit; }
 
@@ -23,26 +25,26 @@ a { color: inherit; }
 .grid { display: grid; gap: 14px; }
 .card {
   border: 1px solid var(--border);
-  background: #ffffff;   /* keeps content readable */
+  background: #000000;     /* BLACK */
   border-radius: 16px;
   padding: 16px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.4);
 }
+
 
 
 .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 @media (max-width: 880px) { .row { grid-template-columns: 1fr; } }
 
 label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 6px; }
-input, select, textarea, button {
-  width: 100%;
-  border: 1px solid var(--border);
-  background: rgba(10, 10, 18, 0.6);
-  color: var(--text);
-  padding: 10px 12px;
-  border-radius: 12px;
-  outline: none;
+input,
+select,
+textarea {
+  background: #e5e7eb;   /* LIGHT GRAY SPACE */
+  color: #000000;        /* BLACK TEXT */
+  border: 1px solid #9ca3af;
 }
+
 textarea { min-height: 110px; resize: vertical; }
 
 button {
