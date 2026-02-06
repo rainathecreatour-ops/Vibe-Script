@@ -477,6 +477,15 @@ setResult(cleaned);
                 <button onClick={() => navigator.clipboard.writeText(result)}>Copy Output</button>
                 <button className="secondary" onClick={downloadTxt}>Download .txt</button>
               </div>
+              <div className="row" style={{ marginTop: 10 }}>
+  <button className="secondary" onClick={saveSession} disabled={!result}>
+    Save Session
+  </button>
+  <button className="secondary" onClick={loadSession}>
+    Load Last Session
+  </button>
+</div>
+
 
               <pre>{result}</pre>
 
