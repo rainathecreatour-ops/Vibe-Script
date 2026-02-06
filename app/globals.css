@@ -1,10 +1,10 @@
 :root {
-  --bg: #eef4ff;        /* soft blue background */
+  --bg: #0000ff;        /* TRUE BLUE */
   --card: #ffffff;
-  --muted: #5b6b8c;
-  --text: #0f172a;
-  --border: #dbe4ff;
-  --accent: #2563eb;    /* blue accent */
+  --muted: #374151;
+  --text: #111827;      /* DARK TEXT so title shows */
+  --border: #e5e7eb;
+  --accent: #0000ff;    /* buttons match background */
 }
 
 
@@ -23,11 +23,12 @@ a { color: inherit; }
 .grid { display: grid; gap: 14px; }
 .card {
   border: 1px solid var(--border);
-  background: rgba(18, 18, 26, 0.86);
+  background: #ffffff;   /* keeps content readable */
   border-radius: 16px;
   padding: 16px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
 }
+
 
 .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 @media (max-width: 880px) { .row { grid-template-columns: 1fr; } }
@@ -46,10 +47,12 @@ textarea { min-height: 110px; resize: vertical; }
 
 button {
   cursor: pointer;
-  background: linear-gradient(135deg, var(--accent), #2dd4bf);
+  background: #0000ff;
+  color: #ffffff;
   border: 0;
   font-weight: 700;
 }
+
 button.secondary {
   background: transparent;
   border: 1px solid var(--border);
@@ -59,7 +62,7 @@ button.secondary {
 .badge { display:inline-flex; padding: 6px 10px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); font-size: 12px; }
 .small { font-size: 12px; color: var(--muted); }
 .h1 { font-size: 26px; margin: 0 0 4px; }
-.h2 { font-size: 16px; margin: 0 0 8px; color: #e9e9ff; }
+.h2 { font-size: 16px; margin: 0 0 8px; color: #111827; }
 hr { border: 0; border-top: 1px solid var(--border); margin: 14px 0; }
 pre {
   white-space: pre-wrap;
