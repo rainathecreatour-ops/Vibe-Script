@@ -47,6 +47,54 @@ const DURATIONS = [
   { label: '60 minutes (max)', seconds: 3600 }
 ];
 
+type Clip = {
+  id: number;
+  duration: number;
+  image: string;
+  pageUrl: string;
+  downloadUrl: string;
+  width?: number;
+  height?: number;
+};
+
+type BRollResult = {
+  query: string;
+  videos: Clip[];
+  error?: string;
+  details?: string;
+};
+
+function extractBRollQueries(output: string): string[] {
+  // Looks for:
+  // B-ROLL SHOT LIST (10):
+  // 1) ...
+  // 2) ...
+  const lines = output.split('\n').map(l => l.trim());
+  const startIdx = lines.findIndex(l => l.toUpperCase().startsWith('B-ROLL SHOT LIST'));
+  if (startIdx === -1) return [];
+
+  const queries: string[] = [];
+  for (let i = startIdx + 1; i < lines.length; i++) {
+    const line = lines[i];
+
+    // stop if we hit another section header
+    if (
+      line.toUpperCase().startsWith('VISUAL PROMPTS') ||
+      line.toUpperCase().startsWith('INSTRUMENTAL') ||
+      line.toUpperCase().startsWith('TITLE:') ||
+      line.toUpperCase().startsWith('SCRIPT:')
+    ) break;
+
+    const m = line.match(/^\d+\)\s*(.+)$/);
+    if (m?.[1]) {
+      const cleaned = m[1].trim();
+      if (cleaned) queries.push(cleaned);
+    }
+  }
+
+  return queries.slice(0, 10);
+}
+
 export default function Page() {
   const [accessCode, setAccessCode] = useState('');
   const [topic, setTopic] = useState<Topic>('Money Affirmations');
@@ -64,16 +112,18 @@ export default function Page() {
   const [audience, setAudience] = useState<'Women' | 'Men' | 'Moms' | 'Teens' | 'Everyone'>('Everyone');
 
   const [includeHooksCaptions, setIncludeHooksCaptions] = useState(true);
-
-  // ✅ NEW toggle
   const [includeBRoll, setIncludeBRoll] = useState(true);
 
   const [keywords, setKeywords] = useState('');
   const [notes, setNotes] = useState('');
 
   const [loading, setLoading] = useState(false);
+  const [brollLoading, setBRollLoading] = useState(false);
+
   const [result, setResult] = useState<string>('');
   const [error, setError] = useState<string>('');
+
+  const [brollResults, setBRollResults] = useState<BRollResult[]>([]);
 
   const input: Input = useMemo(
     () => ({
@@ -109,9 +159,42 @@ export default function Page() {
     URL.revokeObjectURL(url);
   }
 
+  async function fetchBRollClips(generatedText: string) {
+    const queries = extractBRollQueries(generatedText);
+    if (!includeBRoll || queries.length === 0) {
+      setBRollResults([]);
+      return;
+    }
+
+    setBRollLoading(true);
+    try {
+      const res = await fetch('/api/broll', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accessCode, queries, perQuery: 3 })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setBRollResults([]);
+        // show error in the main error area
+        setError(data?.error || 'B-roll fetch failed');
+        return;
+      }
+
+      setBRollResults(data?.results || []);
+    } catch (e: any) {
+      setBRollResults([]);
+      setError(e?.message || 'B-roll network error');
+    } finally {
+      setBRollLoading(false);
+    }
+  }
+
   async function onGenerate() {
     setError('');
     setResult('');
+    setBRollResults([]);
     setLoading(true);
 
     try {
@@ -127,7 +210,11 @@ export default function Page() {
         return;
       }
 
-      setResult(data.result);
+      const text = data.result as string;
+      setResult(text);
+
+      // Fetch real b-roll clips after the script is generated
+      await fetchBRollClips(text);
     } catch (e: any) {
       setError(e?.message || 'Network error');
     } finally {
@@ -139,10 +226,10 @@ export default function Page() {
     <div className="container">
       <div className="grid">
         <div className="card">
-          <div className="badge">Paid Access Code • Scripts, visuals, and music prompts that match your vibe</div>
+          <div className="badge">Paid Access Code • Scripts, visuals, music prompts, and real B-roll links</div>
           <h1 className="h1" style={{ marginTop: 10 }}>VibeScript</h1>
           <div className="small">
-            Generate scripts + visuals + music prompts {includeHooksCaptions ? '+ hooks/captions ' : ''}{includeBRoll ? '+ B-roll shot list ' : ''}in one click.
+            Generate scripts + visuals + music prompts {includeHooksCaptions ? '+ hooks/captions ' : ''}{includeBRoll ? '+ real B-roll clips ' : ''}in one click.
           </div>
         </div>
 
@@ -247,25 +334,8 @@ export default function Page() {
           <div style={{ marginTop: 12 }}>
             <label>Extras</label>
 
-            {/* Hooks/Captions */}
-            <div
-              style={{
-                display: 'flex',
-                gap: 10,
-                alignItems: 'center',
-                border: '1px solid var(--border)',
-                background: 'rgba(10, 10, 18, 0.6)',
-                borderRadius: 12,
-                padding: '10px 12px',
-                marginBottom: 10
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={includeHooksCaptions}
-                onChange={(e) => setIncludeHooksCaptions(e.target.checked)}
-                style={{ width: 18, height: 18 }}
-              />
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', border: '1px solid var(--border)', background: 'rgba(10, 10, 18, 0.6)', borderRadius: 12, padding: '10px 12px', marginBottom: 10 }}>
+              <input type="checkbox" checked={includeHooksCaptions} onChange={(e) => setIncludeHooksCaptions(e.target.checked)} style={{ width: 18, height: 18 }} />
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 700 }}>Include Hooks & Captions</div>
                 <div className="small">Adds 3 hooks + 3 captions to your output.</div>
@@ -273,27 +343,11 @@ export default function Page() {
               <span className="badge">{includeHooksCaptions ? 'ON' : 'OFF'}</span>
             </div>
 
-            {/* ✅ B-roll */}
-            <div
-              style={{
-                display: 'flex',
-                gap: 10,
-                alignItems: 'center',
-                border: '1px solid var(--border)',
-                background: 'rgba(10, 10, 18, 0.6)',
-                borderRadius: 12,
-                padding: '10px 12px'
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={includeBRoll}
-                onChange={(e) => setIncludeBRoll(e.target.checked)}
-                style={{ width: 18, height: 18 }}
-              />
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', border: '1px solid var(--border)', background: 'rgba(10, 10, 18, 0.6)', borderRadius: 12, padding: '10px 12px' }}>
+              <input type="checkbox" checked={includeBRoll} onChange={(e) => setIncludeBRoll(e.target.checked)} style={{ width: 18, height: 18 }} />
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700 }}>Include B-roll Shot List</div>
-                <div className="small">Adds 10 clip ideas (subject + shot type + motion + mood).</div>
+                <div style={{ fontWeight: 700 }}>Include Real B-roll Clips</div>
+                <div className="small">Fetches real videos (thumbnails + download links) from Pexels.</div>
               </div>
               <span className="badge">{includeBRoll ? 'ON' : 'OFF'}</span>
             </div>
@@ -314,7 +368,7 @@ export default function Page() {
             <button onClick={onGenerate} disabled={loading}>
               {loading ? 'Generating...' : 'Generate VibeScript'}
             </button>
-            <button className="secondary" onClick={() => { setResult(''); setError(''); }} disabled={loading}>
+            <button className="secondary" onClick={() => { setResult(''); setError(''); setBRollResults([]); }} disabled={loading || brollLoading}>
               Clear
             </button>
           </div>
@@ -324,12 +378,6 @@ export default function Page() {
 
         <div className="card">
           <h2 className="h2">Your VibeScript Output</h2>
-          <div className="small" style={{ marginBottom: 10 }}>
-            Includes script, 5 visual prompts, and a music prompt
-            {includeHooksCaptions ? ' + hooks/captions' : ''}
-            {includeBRoll ? ' + B-roll shot list' : ''}
-            .
-          </div>
 
           {!result && <div className="small">Your output will appear here.</div>}
 
@@ -339,7 +387,57 @@ export default function Page() {
                 <button onClick={() => navigator.clipboard.writeText(result)}>Copy Output</button>
                 <button className="secondary" onClick={downloadTxt}>Download .txt</button>
               </div>
+
               <pre>{result}</pre>
+
+              {/* Real B-roll clips */}
+              {includeBRoll && (
+                <>
+                  <hr />
+                  <h2 className="h2">Real B-roll Clips (Pexels)</h2>
+                  <div className="small" style={{ marginBottom: 10 }}>
+                    {brollLoading ? 'Fetching clips…' : 'Click Download or View on Pexels.'}
+                  </div>
+
+                  {brollResults.length === 0 && !brollLoading && (
+                    <div className="small">No B-roll results yet (generate a script with B-roll ON).</div>
+                  )}
+
+                  {brollResults.map((r, idx) => (
+                    <div key={idx} style={{ marginBottom: 16, border: '1px solid var(--border)', borderRadius: 12, padding: 12, background: 'rgba(10,10,18,0.35)' }}>
+                      <div style={{ fontWeight: 700, marginBottom: 8 }}>{idx + 1}. {r.query}</div>
+
+                      {r.error && (
+                        <div className="small" style={{ color: '#ffb4b4' }}>
+                          {r.error} {r.details ? `— ${r.details}` : ''}
+                        </div>
+                      )}
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+                        {r.videos.map(v => (
+                          <div key={v.id} style={{ border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', background: 'rgba(0,0,0,0.25)' }}>
+                            {v.image && (
+                              // thumbnail
+                              <img src={v.image} alt="b-roll thumbnail" style={{ width: '100%', height: 110, objectFit: 'cover', display: 'block' }} />
+                            )}
+                            <div style={{ padding: 10 }}>
+                              <div className="small" style={{ marginBottom: 8 }}>Duration: {v.duration}s</div>
+                              <div style={{ display: 'flex', gap: 8 }}>
+                                <a href={v.downloadUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--text)', textDecoration: 'underline' }}>
+                                  Download
+                                </a>
+                                <a href={v.pageUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--text)', textDecoration: 'underline' }}>
+                                  View
+                                </a>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
             </>
           )}
         </div>
