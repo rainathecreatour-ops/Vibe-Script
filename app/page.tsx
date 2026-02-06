@@ -11,7 +11,7 @@ const TOPICS: Topic[] = [
   'Relatable Everyday',
   'Healing/Anxiety Relief',
   'Confidence/Self-Worth',
-  'Custom',
+  'Custom'
 ];
 
 const TONES: Tone[] = [
@@ -21,7 +21,7 @@ const TONES: Tone[] = [
   'Soft & Nurturing',
   'Bold & Confident',
   'Cinematic',
-  'Relatable/Conversational',
+  'Relatable/Conversational'
 ];
 
 const PLATFORMS: Platform[] = ['Suno', 'YouTube', 'TikTok/Reels', 'Podcast', 'Meditation App', 'ElevenLabs'];
@@ -31,7 +31,7 @@ const STRUCTURES: ScriptStructure[] = [
   'Affirmation Loop',
   'Story-Based',
   'Guided Reflection',
-  'Prayer-Style',
+  'Prayer-Style'
 ];
 
 const ASPECTS: Aspect[] = ['Vertical 9:16', 'Square 1:1', 'Horizontal 16:9'];
@@ -44,7 +44,7 @@ const DURATIONS = [
   { label: '10 minutes', seconds: 600 },
   { label: '20 minutes', seconds: 1200 },
   { label: '30 minutes', seconds: 1800 },
-  { label: '60 minutes (max)', seconds: 3600 },
+  { label: '60 minutes (max)', seconds: 3600 }
 ];
 
 export default function Page() {
@@ -63,7 +63,10 @@ export default function Page() {
     useState<'Gentle' | 'Balanced' | 'Strong' | 'Scroll-Stopping'>('Balanced');
   const [audience, setAudience] = useState<'Women' | 'Men' | 'Moms' | 'Teens' | 'Everyone'>('Everyone');
 
-  const [includeHooksCaptions, setIncludeHooksCaptions] = useState(true); // ✅ NEW toggle
+  const [includeHooksCaptions, setIncludeHooksCaptions] = useState(true);
+
+  // ✅ NEW toggle
+  const [includeBRoll, setIncludeBRoll] = useState(true);
 
   const [keywords, setKeywords] = useState('');
   const [notes, setNotes] = useState('');
@@ -86,22 +89,13 @@ export default function Page() {
       audience,
       keywords,
       notes,
-      includeHooksCaptions, // ✅ NEW
+      includeHooksCaptions,
+      includeBRoll
     }),
     [
-      topic,
-      customTopic,
-      tone,
-      platform,
-      durationSeconds,
-      structure,
-      aspect,
-      voiceStyle,
-      hookStrength,
-      audience,
-      keywords,
-      notes,
-      includeHooksCaptions,
+      topic, customTopic, tone, platform, durationSeconds, structure, aspect,
+      voiceStyle, hookStrength, audience, keywords, notes,
+      includeHooksCaptions, includeBRoll
     ]
   );
 
@@ -124,7 +118,7 @@ export default function Page() {
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accessCode, input }),
+        body: JSON.stringify({ accessCode, input })
       });
 
       const data = await res.json();
@@ -148,7 +142,7 @@ export default function Page() {
           <div className="badge">Paid Access Code • Scripts, visuals, and music prompts that match your vibe</div>
           <h1 className="h1" style={{ marginTop: 10 }}>VibeScript</h1>
           <div className="small">
-            Generate narration-ready scripts + optional hooks/captions + 5 image prompts + a music prompt (Suno/TikTok/YouTube/etc.).
+            Generate scripts + visuals + music prompts {includeHooksCaptions ? '+ hooks/captions ' : ''}{includeBRoll ? '+ B-roll shot list ' : ''}in one click.
           </div>
         </div>
 
@@ -157,23 +151,14 @@ export default function Page() {
           <div className="row">
             <div>
               <label>Access Code</label>
-              <input
-                value={accessCode}
-                onChange={(e) => setAccessCode(e.target.value)}
-                placeholder="Enter your paid access code"
-              />
-              <div className="small" style={{ marginTop: 6 }}>
-                Sell codes on Gumroad/Payhip and deliver via email.
-              </div>
+              <input value={accessCode} onChange={(e) => setAccessCode(e.target.value)} placeholder="Enter your paid access code" />
+              <div className="small" style={{ marginTop: 6 }}>Sell codes on Gumroad/Payhip and deliver via email.</div>
             </div>
+
             <div>
               <label>Platform (music/usage)</label>
               <select value={platform} onChange={(e) => setPlatform(e.target.value as Platform)}>
-                {PLATFORMS.map((p) => (
-                  <option key={p} value={p}>
-                    {p}
-                  </option>
-                ))}
+                {PLATFORMS.map(p => <option key={p} value={p}>{p}</option>)}
               </select>
             </div>
           </div>
@@ -185,21 +170,13 @@ export default function Page() {
             <div>
               <label>Topic</label>
               <select value={topic} onChange={(e) => setTopic(e.target.value as Topic)}>
-                {TOPICS.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
+                {TOPICS.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
 
               {topic === 'Custom' && (
                 <div style={{ marginTop: 10 }}>
                   <label>Custom Topic</label>
-                  <input
-                    value={customTopic}
-                    onChange={(e) => setCustomTopic(e.target.value)}
-                    placeholder="e.g., 'Single mom encouragement for mornings'"
-                  />
+                  <input value={customTopic} onChange={(e) => setCustomTopic(e.target.value)} placeholder="e.g., 'Single mom encouragement for mornings'" />
                 </div>
               )}
             </div>
@@ -207,11 +184,7 @@ export default function Page() {
             <div>
               <label>Tone</label>
               <select value={tone} onChange={(e) => setTone(e.target.value as Tone)}>
-                {TONES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
+                {TONES.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
           </div>
@@ -220,22 +193,14 @@ export default function Page() {
             <div>
               <label>Length</label>
               <select value={String(durationSeconds)} onChange={(e) => setDurationSeconds(Number(e.target.value))}>
-                {DURATIONS.map((d) => (
-                  <option key={d.seconds} value={d.seconds}>
-                    {d.label}
-                  </option>
-                ))}
+                {DURATIONS.map(d => <option key={d.seconds} value={d.seconds}>{d.label}</option>)}
               </select>
             </div>
 
             <div>
               <label>Structure</label>
               <select value={structure} onChange={(e) => setStructure(e.target.value as ScriptStructure)}>
-                {STRUCTURES.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
+                {STRUCTURES.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
           </div>
@@ -244,10 +209,8 @@ export default function Page() {
             <div>
               <label>Voice Style</label>
               <select value={voiceStyle} onChange={(e) => setVoiceStyle(e.target.value as any)}>
-                {['Warm Coach', 'Soft Narrator', 'Confident Narrator', 'Spiritual Guide'].map((v) => (
-                  <option key={v} value={v}>
-                    {v}
-                  </option>
+                {['Warm Coach','Soft Narrator','Confident Narrator','Spiritual Guide'].map(v => (
+                  <option key={v} value={v}>{v}</option>
                 ))}
               </select>
             </div>
@@ -255,10 +218,8 @@ export default function Page() {
             <div>
               <label>Hook Strength</label>
               <select value={hookStrength} onChange={(e) => setHookStrength(e.target.value as any)}>
-                {['Gentle', 'Balanced', 'Strong', 'Scroll-Stopping'].map((h) => (
-                  <option key={h} value={h}>
-                    {h}
-                  </option>
+                {['Gentle','Balanced','Strong','Scroll-Stopping'].map(h => (
+                  <option key={h} value={h}>{h}</option>
                 ))}
               </select>
             </div>
@@ -268,10 +229,8 @@ export default function Page() {
             <div>
               <label>Audience</label>
               <select value={audience} onChange={(e) => setAudience(e.target.value as any)}>
-                {['Everyone', 'Women', 'Men', 'Moms', 'Teens'].map((a) => (
-                  <option key={a} value={a}>
-                    {a}
-                  </option>
+                {['Everyone','Women','Men','Moms','Teens'].map(a => (
+                  <option key={a} value={a}>{a}</option>
                 ))}
               </select>
             </div>
@@ -279,18 +238,16 @@ export default function Page() {
             <div>
               <label>Visual aspect ratio</label>
               <select value={aspect} onChange={(e) => setAspect(e.target.value as Aspect)}>
-                {ASPECTS.map((a) => (
-                  <option key={a} value={a}>
-                    {a}
-                  </option>
-                ))}
+                {ASPECTS.map(a => <option key={a} value={a}>{a}</option>)}
               </select>
             </div>
           </div>
 
-          {/* ✅ NEW TOGGLE */}
+          {/* Extras toggles */}
           <div style={{ marginTop: 12 }}>
             <label>Extras</label>
+
+            {/* Hooks/Captions */}
             <div
               style={{
                 display: 'flex',
@@ -300,6 +257,7 @@ export default function Page() {
                 background: 'rgba(10, 10, 18, 0.6)',
                 borderRadius: 12,
                 padding: '10px 12px',
+                marginBottom: 10
               }}
             >
               <input
@@ -314,24 +272,41 @@ export default function Page() {
               </div>
               <span className="badge">{includeHooksCaptions ? 'ON' : 'OFF'}</span>
             </div>
+
+            {/* ✅ B-roll */}
+            <div
+              style={{
+                display: 'flex',
+                gap: 10,
+                alignItems: 'center',
+                border: '1px solid var(--border)',
+                background: 'rgba(10, 10, 18, 0.6)',
+                borderRadius: 12,
+                padding: '10px 12px'
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={includeBRoll}
+                onChange={(e) => setIncludeBRoll(e.target.checked)}
+                style={{ width: 18, height: 18 }}
+              />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700 }}>Include B-roll Shot List</div>
+                <div className="small">Adds 10 clip ideas (subject + shot type + motion + mood).</div>
+              </div>
+              <span className="badge">{includeBRoll ? 'ON' : 'OFF'}</span>
+            </div>
           </div>
 
           <div className="row" style={{ marginTop: 12 }}>
             <div>
               <label>Keywords (optional)</label>
-              <input
-                value={keywords}
-                onChange={(e) => setKeywords(e.target.value)}
-                placeholder="e.g., abundance, discipline, peace, gratitude"
-              />
+              <input value={keywords} onChange={(e) => setKeywords(e.target.value)} placeholder="e.g., abundance, discipline, peace, gratitude" />
             </div>
             <div>
               <label>Extra notes (optional)</label>
-              <input
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="e.g., include a CTA to save/share"
-              />
+              <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g., include a CTA to save/share" />
             </div>
           </div>
 
@@ -339,29 +314,21 @@ export default function Page() {
             <button onClick={onGenerate} disabled={loading}>
               {loading ? 'Generating...' : 'Generate VibeScript'}
             </button>
-            <button
-              className="secondary"
-              onClick={() => {
-                setResult('');
-                setError('');
-              }}
-              disabled={loading}
-            >
+            <button className="secondary" onClick={() => { setResult(''); setError(''); }} disabled={loading}>
               Clear
             </button>
           </div>
 
-          {error && (
-            <div className="small" style={{ marginTop: 12, color: '#ffb4b4' }}>
-              Error: {error}
-            </div>
-          )}
+          {error && <div className="small" style={{ marginTop: 12, color: '#ffb4b4' }}>Error: {error}</div>}
         </div>
 
         <div className="card">
           <h2 className="h2">Your VibeScript Output</h2>
           <div className="small" style={{ marginBottom: 10 }}>
-            Includes script, 5 visual prompts, and a music prompt {includeHooksCaptions ? '(plus hooks & captions).' : '.'}
+            Includes script, 5 visual prompts, and a music prompt
+            {includeHooksCaptions ? ' + hooks/captions' : ''}
+            {includeBRoll ? ' + B-roll shot list' : ''}
+            .
           </div>
 
           {!result && <div className="small">Your output will appear here.</div>}
@@ -370,9 +337,7 @@ export default function Page() {
             <>
               <div className="row" style={{ marginBottom: 12 }}>
                 <button onClick={() => navigator.clipboard.writeText(result)}>Copy Output</button>
-                <button className="secondary" onClick={downloadTxt}>
-                  Download .txt
-                </button>
+                <button className="secondary" onClick={downloadTxt}>Download .txt</button>
               </div>
               <pre>{result}</pre>
             </>
