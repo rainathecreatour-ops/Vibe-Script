@@ -54,7 +54,7 @@ async function fetchPexelsVideos(key: string, q: string, per: number): Promise<V
   return vids.filter((x: VideoClip) => x.image && x.downloadUrl);
 }
 
-async function fetchPexelsPhotos(key: string, q: string, per: number): Promise<PhotoClip[]> {
+async function fetchPexelsPhotos(key: string, q: string, per: number) {
   const url = new URL('https://api.pexels.com/v1/search');
   url.searchParams.set('query', q);
   url.searchParams.set('per_page', String(per));
@@ -74,6 +74,10 @@ async function fetchPexelsPhotos(key: string, q: string, per: number): Promise<P
     downloadUrl: p?.src?.large2x || p?.src?.original || p?.src?.large,
     source: 'pexels-photo' as const,
   }));
+
+  return photos.filter((x: any) => x.image && x.downloadUrl);
+}
+
 
   return photos.filter(p => p.image && p.downloadUrl);
 }
