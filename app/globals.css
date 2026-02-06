@@ -1,3 +1,7 @@
+body {
+  font-size: 16.5px; /* was effectively ~14–15px */
+}
+
 :root {
   --bg: #0000ff;
   --card: #12121a;
@@ -44,10 +48,12 @@ a { color: inherit; }
 .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 @media (max-width: 880px) { .row { grid-template-columns: 1fr; } }
 
-label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 6px; }
+label { font-size: 14px; color: var(--muted); display: block; margin-bottom: 6px; }
 input,
 select,
-textarea {
+textarea 
+button {
+  font-size: 15.5px;
   background: #e5e7eb;   /* LIGHT GRAY SPACE */
   color: #000000;        /* BLACK TEXT */
   border: 1px solid #9ca3af;
@@ -71,9 +77,9 @@ button.secondary {
 }
 
 .badge { display:inline-flex; padding: 6px 10px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); font-size: 12px; }
-.small { font-size: 12px; color: var(--muted); }
-.h1 { font-size: 26px; margin: 0 0 4px; }
-.h2 { font-size: 16px; margin: 0 0 8px; color: #111827; }
+.small { font-size: 13.5px; color: var(--muted); }
+.h1 { font-size: 30px; margin: 0 0 4px; }
+.h2 { font-size: 18px; margin: 0 0 8px; color: #111827; }
 hr { border: 0; border-top: 1px solid var(--border); margin: 14px 0; }
 pre {
   white-space: pre-wrap;
