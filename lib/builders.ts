@@ -124,31 +124,7 @@ CAPTIONS (3):
 `.trim();
 }
 
-function brollRulesBlock() {
-  return `
-B-roll rules:
-- Provide 10 clip ideas (8–12 acceptable).
-- Each line should include: subject + action + setting + shot type (wide/medium/close) + motion (static/slow pan/handheld) + mood.
-- Keep it platform-friendly and easy to source on stock sites or generate with AI video tools.
-- No brand names, no copyrighted characters.
-`.trim();
-}
 
-function brollOutputBlock() {
-  return `
-B-ROLL SHOT LIST (10):
-1)
-2)
-3)
-4)
-5)
-6)
-7)
-8)
-9)
-10)
-`.trim();
-}
 
 export function buildUserPrompt(input: Input) {
   const topicFinal = input.topic === 'Custom' ? (input.customTopic || 'Custom Topic') : input.topic;
@@ -178,7 +154,7 @@ Constraints:
 Platform guidance: ${platformGuidance(input.platform)}
 Topic rules: ${topicRules(input.topic)}
 ${includeHC ? hooksCaptionsRulesBlock() : ''}
-${includeBR ? brollRulesBlock() : ''}
+
 
 Visuals:
 - Create 5 prompts with different looks:
@@ -202,7 +178,6 @@ TITLE:
 SCRIPT:
 ${includeHC ? '\n' + hooksCaptionsOutputBlock() + '\n' : ''}
 
-${includeBR ? brollOutputBlock() + '\n' : ''}
 
 VISUAL PROMPTS (5):
 1)
