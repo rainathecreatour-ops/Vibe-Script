@@ -60,9 +60,11 @@ type Clip = {
 type BRollResult = {
   query: string;
   videos: Clip[];
+  photos: Clip[];
   error?: string;
   details?: string;
 };
+
 
 function extractBRollQueries(output: string): string[] {
   // Looks for:
