@@ -191,8 +191,6 @@ export default function Page() {
   const [includeHooksCaptions, setIncludeHooksCaptions] = useState(true);
   // b-roll media toggle
   const [includeBRoll, setIncludeBRoll] = useState(true);
-  // NEW: timed captions (SRT/VTT) derived from script
-  const [includeAutoCaptions, setIncludeAutoCaptions] = useState(true);
 
   const [keywords, setKeywords] = useState('');
   const [notes, setNotes] = useState('');
@@ -205,10 +203,7 @@ export default function Page() {
 
   const [brollResults, setBRollResults] = useState<BRollResult[]>([]);
 
-  // Auto-captions output
-  const [captionsSrt, setCaptionsSrt] = useState('');
-  const [captionsVtt, setCaptionsVtt] = useState('');
-  const [captionsPreview, setCaptionsPreview] = useState<string[]>([]);
+  
 
   // Select clips + download selected
   const [selectedMedia, setSelectedMedia] = useState<Record<string, boolean>>({});
@@ -359,7 +354,6 @@ export default function Page() {
       if (i?.audience) setAudience(i.audience);
       if (typeof i?.includeHooksCaptions === 'boolean') setIncludeHooksCaptions(i.includeHooksCaptions);
       if (typeof i?.includeBRoll === 'boolean') setIncludeBRoll(i.includeBRoll);
-      if (typeof i?.includeAutoCaptions === 'boolean') setIncludeAutoCaptions(i.includeAutoCaptions);
       if (typeof i?.keywords === 'string') setKeywords(i.keywords);
       if (typeof i?.notes === 'string') setNotes(i.notes);
 
@@ -385,7 +379,7 @@ export default function Page() {
       notes,
       includeHooksCaptions,
       includeBRoll,
-      // includeAutoCaptions is UI-only; we don’t need to send to backend unless you want it there too
+      
     }),
     [
       topic,
@@ -447,9 +441,6 @@ export default function Page() {
     setError('');
     setResult('');
     setBRollResults([]);
-    setCaptionsSrt('');
-    setCaptionsVtt('');
-    setCaptionsPreview([]);
     clearSelection();
     setLoading(true);
 
@@ -482,24 +473,13 @@ export default function Page() {
       setResult(cleaned);
 
       // Auto captions derived from script
-      if (includeAutoCaptions) {
-        const { srt, vtt } = buildCaptionsFromScript(cleaned, durationSeconds);
-        setCaptionsSrt(srt);
-        setCaptionsVtt(vtt);
-
-        const previewLines = srt
-          .split('\n')
-          .filter((line) => line.trim() && !/^\d+$/.test(line) && !line.includes('-->'))
-          .slice(0, 12);
-
-        setCaptionsPreview(previewLines);
-      }
+      
     } catch (e: any) {
       setError(e?.message || 'Network error');
     } finally {
       setLoading(false);
     }
-  }
+  
 
   return (
     <div className="container">
@@ -709,32 +689,7 @@ export default function Page() {
               <span className="badge">{includeBRoll ? 'ON' : 'OFF'}</span>
             </div>
 
-            {/* Auto captions toggle */}
-            <div
-              style={{
-                display: 'flex',
-                gap: 10,
-                alignItems: 'center',
-                border: '1px solid var(--border)',
-                background: 'rgba(10, 10, 18, 0.6)',
-                borderRadius: 12,
-                padding: '10px 12px',
-                marginTop: 10,
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={includeAutoCaptions}
-                onChange={(e) => setIncludeAutoCaptions(e.target.checked)}
-                style={{ width: 18, height: 18 }}
-              />
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700 }}>Generate Timed Captions (SRT/VTT)</div>
-                <div className="small">Creates captions from your script using your selected duration.</div>
-              </div>
-              <span className="badge">{includeAutoCaptions ? 'ON' : 'OFF'}</span>
-            </div>
-          </div>
+          
 
           <div className="row" style={{ marginTop: 12 }}>
             <div>
@@ -757,9 +712,6 @@ export default function Page() {
                 setResult('');
                 setError('');
                 setBRollResults([]);
-                setCaptionsSrt('');
-                setCaptionsVtt('');
-                setCaptionsPreview([]);
                 clearSelection();
               }}
               disabled={loading || brollLoading}
@@ -791,53 +743,9 @@ export default function Page() {
               <div className="row" style={{ marginBottom: 12 }}>
                 <button onClick={() => navigator.clipboard.writeText(result)}>Copy Output</button>
                 <button className="secondary" onClick={downloadTxt}>Download .txt</button>
-              </div>
+              </div>  
 
-              <pre>{result}</pre>
-
-              {/* Captions preview + downloads */}
-              {includeAutoCaptions && captionsPreview.length > 0 && (
-                <>
-                  <hr />
-                  <h2 className="h2">Captions (Preview)</h2>
-                  <div className="small" style={{ marginBottom: 10 }}>
-                    Generated from your script using your selected duration.
-                  </div>
-
-                  <div className="row" style={{ marginBottom: 12 }}>
-                    <button
-                      className="secondary"
-                      onClick={() => downloadTextFile(`vibescript_${Date.now()}.srt`, captionsSrt)}
-                      disabled={!captionsSrt}
-                    >
-                      Download .srt
-                    </button>
-                    <button
-                      className="secondary"
-                      onClick={() => downloadTextFile(`vibescript_${Date.now()}.vtt`, captionsVtt)}
-                      disabled={!captionsVtt}
-                    >
-                      Download .vtt
-                    </button>
-                  </div>
-
-                  <div
-                    style={{
-                      border: '1px solid var(--border)',
-                      borderRadius: 12,
-                      padding: 12,
-                      background: 'rgba(10,10,18,0.35)',
-                    }}
-                  >
-                    {captionsPreview.map((line, i) => (
-                      <div key={i} style={{ marginBottom: 6 }}>
-                        {line}
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-
+                  
               {/* B-roll media section */}
               {includeBRoll && (
                 <>
