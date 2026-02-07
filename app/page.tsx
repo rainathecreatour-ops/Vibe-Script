@@ -5,12 +5,50 @@ import type { Input, Topic, Tone, Platform, ScriptStructure, Aspect } from '@/li
 
 const TOPICS: Topic[] = [
   'Money Affirmations',
+  'Abundance Mindset',
+  'Manifestation (Money)',
+  'Wealth Habits',
+  'Financial Literacy',
+  'Entrepreneur Motivation',
+  'Career Confidence',
+  'Productivity & Discipline',
+
   'Motivation',
-  'Spiritual (Non-Religious)',
-  'Religious (Faith/Bible)',
+  'Morning Motivation',
+  'Night Reflection / Reset',
+  'Confidence Boost',
+  'Self-Love / Self-Worth',
+  'Healing & Letting Go',
+  'Overthinking / Anxiety Relief',
+  'Boundaries & Self-Respect',
+  'Gratitude & Joy',
+
   'Relatable Everyday',
-  'Healing/Anxiety Relief',
-  'Confidence/Self-Worth',
+  '“If nobody told you today…”',
+  '“Starting over” encouragement',
+  '“Stop scrolling” message',
+
+  'Relationships (Healthy Love)',
+  'Healing After Heartbreak',
+  'Communication & Conflict',
+  'Emotional Safety & Trust',
+
+  'Spiritual (Non-Religious)',
+  'Meditation / Calm Breathing',
+  'Sleep Affirmations',
+  'Inner Child Healing',
+
+  'Religious (Faith/Bible)',
+  'Bible Encouragement',
+  'Prayer for Peace',
+  'Prayer for Provision',
+  'Devotional Reflection',
+
+  'Parenting / Mom Support',
+  'Single Mom Motivation',
+  'Gentle Parenting Support',
+  'Kids Affirmations',
+
   'Custom',
 ];
 
@@ -423,14 +461,15 @@ export default function Page() {
 
           <div className="row">
             <div>
-              <label>Topic</label>
-              <select value={topic} onChange={(e) => setTopic(e.target.value as Topic)}>
-                {TOPICS.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
+             <label>Topic</label>
+<select value={topic} onChange={(e) => setTopic(e.target.value as Topic)}>
+  {TOPICS.map((t) => (
+    <option key={t} value={t}>
+      {t}
+    </option>
+  ))}
+</select>
+
 
               {topic === 'Custom' && (
                 <div style={{ marginTop: 10 }}>
