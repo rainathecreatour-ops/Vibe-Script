@@ -72,93 +72,6 @@ function buildFallbackQueries(topic: string, keywords: string) {
   ];
 }
 
-// --- captions helpers ---
-function formatSrtTime(seconds: number) {
-  const s = Math.max(0, seconds);
-  const hh = Math.floor(s / 3600);
-  const mm = Math.floor((s % 3600) / 60);
-  const ss = Math.floor(s % 60);
-  const ms = Math.floor((s - Math.floor(s)) * 1000);
-
-  const pad = (n: number, w = 2) => String(n).padStart(w, '0');
-  return `${pad(hh)}:${pad(mm)}:${pad(ss)},${pad(ms, 3)}`;
-}
-
-function formatVttTime(seconds: number) {
-  const s = Math.max(0, seconds);
-  const hh = Math.floor(s / 3600);
-  const mm = Math.floor((s % 3600) / 60);
-  const ss = Math.floor(s % 60);
-  const ms = Math.floor((s - Math.floor(s)) * 1000);
-
-  const pad = (n: number, w = 2) => String(n).padStart(w, '0');
-  return `${pad(hh)}:${pad(mm)}:${pad(ss)}.${pad(ms, 3)}`;
-}
-
-function extractScriptBody(text: string) {
-  const m =
-    text.match(/(^|\n)#{1,3}\s*SCRIPT\s*:?\s*\n([\s\S]*?)(?=\n#{1,3}\s*[A-Z ]+|\n$)/i) ||
-    text.match(/(^|\n)SCRIPT\s*:?\s*\n([\s\S]*?)(?=\n#{1,3}\s*[A-Z ]+|\n$)/i);
-
-  const body = (m?.[2] ?? text).trim();
-
-  return body
-    .replace(/(^|\n)#{1,6}\s*(VISUAL PROMPTS|INSTRUMENTAL|MUSIC PROMPT|HOOKS|CAPTIONS)\b[\s\S]*$/i, '\n')
-    .trim();
-}
-
-function splitIntoCaptionLines(script: string) {
-  const cleaned = script.replace(/\s+/g, ' ').trim();
-  const parts = cleaned
-    .split(/(?<=[.!?])\s+|(?<=,)\s+/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-  const lines: string[] = [];
-  for (const p of parts) {
-    if (p.length <= 52) {
-      lines.push(p);
-    } else {
-      let start = 0;
-      while (start < p.length) {
-        lines.push(p.slice(start, start + 52).trim());
-        start += 52;
-      }
-    }
-  }
-  return lines.filter(Boolean);
-}
-
-function buildCaptionsFromScript(fullOutput: string, totalSeconds: number) {
-  const script = extractScriptBody(fullOutput);
-  const lines = splitIntoCaptionLines(script);
-
-  const MAX_CAPTIONS = 140;
-  const trimmed = lines.slice(0, MAX_CAPTIONS);
-
-  const minDur = 1.2;
-  const usableCount = Math.max(1, Math.min(trimmed.length, Math.floor(totalSeconds / minDur)));
-
-  const finalLines = trimmed.slice(0, usableCount);
-  const step = totalSeconds / finalLines.length;
-
-  const cues = finalLines.map((text, i) => {
-    const start = i * step;
-    const end = Math.min(totalSeconds, (i + 1) * step);
-    return { start, end, text };
-  });
-
-  const srt = cues
-    .map((c, i) => `${i + 1}\n${formatSrtTime(c.start)} --> ${formatSrtTime(c.end)}\n${c.text}\n`)
-    .join('\n');
-
-  const vtt =
-    `WEBVTT\n\n` +
-    cues.map((c) => `${formatVttTime(c.start)} --> ${formatVttTime(c.end)}\n${c.text}\n`).join('\n');
-
-  return { srt, vtt };
-}
-
 function downloadTextFile(filename: string, content: string) {
   const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
   const url = URL.createObjectURL(blob);
@@ -202,8 +115,6 @@ export default function Page() {
   const [error, setError] = useState<string>('');
 
   const [brollResults, setBRollResults] = useState<BRollResult[]>([]);
-
-  
 
   // Select clips + download selected
   const [selectedMedia, setSelectedMedia] = useState<Record<string, boolean>>({});
@@ -274,7 +185,7 @@ export default function Page() {
       return;
     }
 
-    // Always give a manifest (reliable even if browser blocks multi-download)
+    // Manifest (reliable even if browser blocks multi-download)
     const manifest = {
       savedAt: new Date().toISOString(),
       count: items.length,
@@ -296,8 +207,43 @@ export default function Page() {
     setError('');
   }
 
-  // Save/Load session
-  const SESSION_KEY = 'vibescript:lastSession:v2';
+  // Save/Load session (NO captions saved)
+  const SESSION_KEY = 'vibescript:lastSession:v3';
+
+  const input: Input = useMemo(
+    () => ({
+      topic,
+      customTopic: topic === 'Custom' ? customTopic : undefined,
+      tone,
+      platform,
+      durationSeconds,
+      structure,
+      aspect,
+      voiceStyle,
+      hookStrength,
+      audience,
+      keywords,
+      notes,
+      includeHooksCaptions,
+      includeBRoll,
+    }),
+    [
+      topic,
+      customTopic,
+      tone,
+      platform,
+      durationSeconds,
+      structure,
+      aspect,
+      voiceStyle,
+      hookStrength,
+      audience,
+      keywords,
+      notes,
+      includeHooksCaptions,
+      includeBRoll,
+    ]
+  );
 
   function saveSession() {
     try {
@@ -306,8 +252,6 @@ export default function Page() {
         input,
         result,
         brollResults,
-        captionsSrt,
-        captionsVtt,
       };
       localStorage.setItem(SESSION_KEY, JSON.stringify(payload));
       setError('');
@@ -328,18 +272,6 @@ export default function Page() {
 
       if (typeof data.result === 'string') setResult(data.result);
       if (Array.isArray(data.brollResults)) setBRollResults(data.brollResults);
-
-      if (typeof data.captionsSrt === 'string') setCaptionsSrt(data.captionsSrt);
-      if (typeof data.captionsVtt === 'string') setCaptionsVtt(data.captionsVtt);
-
-      // preview from SRT
-      if (typeof data.captionsSrt === 'string') {
-        const previewLines = data.captionsSrt
-          .split('\n')
-          .filter((line: string) => line.trim() && !/^\d+$/.test(line) && !line.includes('-->'))
-          .slice(0, 12);
-        setCaptionsPreview(previewLines);
-      }
 
       const i = data.input;
       if (i?.topic) setTopic(i.topic);
@@ -362,42 +294,6 @@ export default function Page() {
       setError(e?.message || 'Failed to load session');
     }
   }
-
-  const input: Input = useMemo(
-    () => ({
-      topic,
-      customTopic: topic === 'Custom' ? customTopic : undefined,
-      tone,
-      platform,
-      durationSeconds,
-      structure,
-      aspect,
-      voiceStyle,
-      hookStrength,
-      audience,
-      keywords,
-      notes,
-      includeHooksCaptions,
-      includeBRoll,
-      
-    }),
-    [
-      topic,
-      customTopic,
-      tone,
-      platform,
-      durationSeconds,
-      structure,
-      aspect,
-      voiceStyle,
-      hookStrength,
-      audience,
-      keywords,
-      notes,
-      includeHooksCaptions,
-      includeBRoll,
-    ]
-  );
 
   function downloadTxt() {
     downloadTextFile(`vibescript_${Date.now()}.txt`, result);
@@ -459,10 +355,10 @@ export default function Page() {
 
       const raw = data.result as string;
 
-      // fetch real media first (your /api/broll doesn't depend on the text list anymore)
+      // fetch real media first
       await fetchBRollClips();
 
-      // remove any B-ROLL SHOT LIST section from what the user sees (catch all variants)
+      // remove any B-ROLL SHOT LIST section from what the user sees
       const cleaned = raw
         .replace(
           /(^|\n)\s*(?:#{1,6}\s*)?B\s*-\s*ROLL\s*SHOT\s*LIST\s*:?\s*[\s\S]*?(?=(\n\s*(?:#{1,6}\s*)?(?:VISUAL\s*PROMPTS|INSTRUMENTAL|MUSIC\s*PROMPT|CAPTIONS|HOOKS)\b)|$)/i,
@@ -471,15 +367,12 @@ export default function Page() {
         .trim();
 
       setResult(cleaned);
-
-      // Auto captions derived from script
-      
     } catch (e: any) {
       setError(e?.message || 'Network error');
     } finally {
       setLoading(false);
     }
-  
+  }
 
   return (
     <div className="container">
@@ -688,17 +581,24 @@ export default function Page() {
               </div>
               <span className="badge">{includeBRoll ? 'ON' : 'OFF'}</span>
             </div>
-
-          
+          </div>
 
           <div className="row" style={{ marginTop: 12 }}>
             <div>
               <label>Keywords (optional)</label>
-              <input value={keywords} onChange={(e) => setKeywords(e.target.value)} placeholder="e.g., abundance, discipline, peaceOpening" />
+              <input
+                value={keywords}
+                onChange={(e) => setKeywords(e.target.value)}
+                placeholder="e.g., abundance, discipline, peace"
+              />
             </div>
             <div>
               <label>Extra notes (optional)</label>
-              <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g., include a CTA to save/share" />
+              <input
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="e.g., include a CTA to save/share"
+              />
             </div>
           </div>
 
@@ -729,7 +629,11 @@ export default function Page() {
             </button>
           </div>
 
-          {error && <div className="small" style={{ marginTop: 12, color: '#ffb4b4' }}>Error: {error}</div>}
+          {error && (
+            <div className="small" style={{ marginTop: 12, color: '#ffb4b4' }}>
+              Error: {error}
+            </div>
+          )}
         </div>
 
         {/* Output card */}
@@ -742,10 +646,13 @@ export default function Page() {
             <>
               <div className="row" style={{ marginBottom: 12 }}>
                 <button onClick={() => navigator.clipboard.writeText(result)}>Copy Output</button>
-                <button className="secondary" onClick={downloadTxt}>Download .txt</button>
-              </div>  
+                <button className="secondary" onClick={downloadTxt}>
+                  Download .txt
+                </button>
+              </div>
 
-                  
+              <pre>{result}</pre>
+
               {/* B-roll media section */}
               {includeBRoll && (
                 <>
@@ -755,7 +662,6 @@ export default function Page() {
                     {brollLoading ? 'Fetching videos + photos…' : 'Select clips below, then download your selection.'}
                   </div>
 
-                  {/* Select + download buttons */}
                   <div className="row" style={{ marginBottom: 12 }}>
                     <button onClick={downloadSelected} disabled={brollLoading || selectedCount() === 0}>
                       Download Selected ({selectedCount()})
@@ -771,9 +677,14 @@ export default function Page() {
 
                   {brollResults.map((r, idx) => (
                     <div key={idx} style={{ marginBottom: 20 }}>
-                      {/* Videos */}
                       <div style={{ fontWeight: 700, marginTop: 6, marginBottom: 8 }}>Videos</div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                          gap: 10,
+                        }}
+                      >
                         {(r.videos || []).map((v: any) => {
                           const k = mediaKey('video', idx, v.id);
                           return (
@@ -824,10 +735,20 @@ export default function Page() {
                                   {typeof v.duration === 'number' ? `Duration: ${v.duration}s` : 'Video'}
                                 </div>
                                 <div style={{ display: 'flex', gap: 8 }}>
-                                  <a href={v.downloadUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--text)', textDecoration: 'underline' }}>
+                                  <a
+                                    href={v.downloadUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    style={{ color: 'var(--text)', textDecoration: 'underline' }}
+                                  >
                                     Download
                                   </a>
-                                  <a href={v.pageUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--text)', textDecoration: 'underline' }}>
+                                  <a
+                                    href={v.pageUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    style={{ color: 'var(--text)', textDecoration: 'underline' }}
+                                  >
                                     View
                                   </a>
                                 </div>
@@ -837,9 +758,14 @@ export default function Page() {
                         })}
                       </div>
 
-                      {/* Photos */}
                       <div style={{ fontWeight: 700, marginTop: 14, marginBottom: 8 }}>Photos</div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                          gap: 10,
+                        }}
+                      >
                         {(r.photos || []).map((p: any) => {
                           const k = mediaKey('photo', idx, p.id);
                           return (
@@ -886,12 +812,24 @@ export default function Page() {
                               )}
 
                               <div style={{ padding: 10 }}>
-                                <div className="small" style={{ marginBottom: 8 }}>Photo</div>
+                                <div className="small" style={{ marginBottom: 8 }}>
+                                  Photo
+                                </div>
                                 <div style={{ display: 'flex', gap: 8 }}>
-                                  <a href={p.downloadUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--text)', textDecoration: 'underline' }}>
+                                  <a
+                                    href={p.downloadUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    style={{ color: 'var(--text)', textDecoration: 'underline' }}
+                                  >
                                     Download
                                   </a>
-                                  <a href={p.pageUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--text)', textDecoration: 'underline' }}>
+                                  <a
+                                    href={p.pageUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    style={{ color: 'var(--text)', textDecoration: 'underline' }}
+                                  >
                                     View
                                   </a>
                                 </div>
