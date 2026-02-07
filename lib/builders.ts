@@ -8,15 +8,7 @@ export type Platform =
   | 'Meditation App'
   | 'ElevenLabs';
 
-export type Topic =
-  | 'Money Affirmations'
-  | 'Motivation'
-  | 'Spiritual (Non-Religious)'
-  | 'Religious (Faith/Bible)'
-  | 'Relatable Everyday'
-  | 'Healing/Anxiety Relief'
-  | 'Confidence/Self-Worth'
-  | 'Custom';
+export type Topic = string;
 
 export type Tone =
   | 'Calm'
