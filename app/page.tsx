@@ -383,7 +383,8 @@ export default function Page() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         // ✅ send licenseKey to backend
-        body: JSON.stringify({ licenseKey, input }),
+      body: JSON.stringify({ licenseKey, queries, perQuery: 3 }),
+
       });
 
       const data = await res.json();
