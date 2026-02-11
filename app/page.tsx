@@ -24,9 +24,9 @@ const TOPICS: Topic[] = [
   'Gratitude & Joy',
 
   'Relatable Everyday',
-  '“If nobody told you today…”',
-  '“Starting over” encouragement',
-  '“Stop scrolling” message',
+  'If nobody told you today…',
+  'Starting over encouragement',
+  'Stop scrolling message',
 
   'Relationships (Healthy Love)',
   'Healing After Heartbreak',
@@ -121,7 +121,8 @@ function downloadTextFile(filename: string, content: string) {
 }
 
 export default function Page() {
-  const [accessCode, setAccessCode] = useState('');
+  // ✅ Gumroad license key (replaces access code)
+  const [licenseKey, setLicenseKey] = useState('');
 
   const [topic, setTopic] = useState<Topic>('Money Affirmations');
   const [customTopic, setCustomTopic] = useState('');
@@ -138,9 +139,7 @@ export default function Page() {
     useState<'Gentle' | 'Balanced' | 'Strong' | 'Scroll-Stopping'>('Balanced');
   const [audience, setAudience] = useState<'Women' | 'Men' | 'Moms' | 'Teens' | 'Everyone'>('Everyone');
 
-  // existing toggle: include hooks + social captions (text)
   const [includeHooksCaptions, setIncludeHooksCaptions] = useState(true);
-  // b-roll media toggle
   const [includeBRoll, setIncludeBRoll] = useState(true);
 
   const [keywords, setKeywords] = useState('');
@@ -351,7 +350,8 @@ export default function Page() {
       const res = await fetch('/api/broll', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accessCode, queries, perQuery: 3 }),
+        // ✅ send licenseKey to backend
+        body: JSON.stringify({ licenseKey, queries, perQuery: 3 }),
       });
 
       const data = await res.json();
@@ -382,7 +382,8 @@ export default function Page() {
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accessCode, input }),
+        // ✅ send licenseKey to backend
+        body: JSON.stringify({ licenseKey, input }),
       });
 
       const data = await res.json();
@@ -417,7 +418,7 @@ export default function Page() {
       <div className="grid">
         {/* Header card */}
         <div className="card">
-          <div className="badge">Paid Access Code • Scripts, visuals, music prompts, and real B-roll media</div>
+          <div className="badge">Gumroad License Key • Scripts, visuals, music prompts, and real B-roll media</div>
           <h1 className="h1" style={{ marginTop: 10 }}>
             VibeScript
           </h1>
@@ -432,14 +433,14 @@ export default function Page() {
           <h2 className="h2">Access</h2>
           <div className="row">
             <div>
-              <label>Access Code</label>
+              <label>Gumroad License Key</label>
               <input
-                value={accessCode}
-                onChange={(e) => setAccessCode(e.target.value)}
-                placeholder="Enter your paid access code"
+                value={licenseKey}
+                onChange={(e) => setLicenseKey(e.target.value)}
+                placeholder="Paste your Gumroad license key"
               />
               <div className="small" style={{ marginTop: 6 }}>
-                Keep your API keys in Vercel env vars, not in the code.
+                Your license is verified securely on the server.
               </div>
             </div>
 
@@ -461,15 +462,14 @@ export default function Page() {
 
           <div className="row">
             <div>
-             <label>Topic</label>
-<select value={topic} onChange={(e) => setTopic(e.target.value as Topic)}>
-  {TOPICS.map((t) => (
-    <option key={t} value={t}>
-      {t}
-    </option>
-  ))}
-</select>
-
+              <label>Topic</label>
+              <select value={topic} onChange={(e) => setTopic(e.target.value as Topic)}>
+                {TOPICS.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
 
               {topic === 'Custom' && (
                 <div style={{ marginTop: 10 }}>
@@ -851,9 +851,7 @@ export default function Page() {
                               )}
 
                               <div style={{ padding: 10 }}>
-                                <div className="small" style={{ marginBottom: 8 }}>
-                                  Photo
-                                </div>
+                                <div className="small" style={{ marginBottom: 8 }}>Photo</div>
                                 <div style={{ display: 'flex', gap: 8 }}>
                                   <a
                                     href={p.downloadUrl}
