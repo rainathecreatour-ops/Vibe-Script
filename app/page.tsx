@@ -183,7 +183,7 @@ export default function Page() {
     }> = [];
 
     brollResults.forEach((r, qi) => {
-      (r.videos || []).forEach((v: any) => {
+      (r.videos || []).forEach((v: Clip) => {
         const k = mediaKey('video', qi, v.id);
         if (selectedMedia[k]) {
           items.push({
@@ -197,7 +197,7 @@ export default function Page() {
         }
       });
 
-      (r.photos || []).forEach((p: any) => {
+      (r.photos || []).forEach((p: Clip) => {
         const k = mediaKey('photo', qi, p.id);
         if (selectedMedia[k]) {
           items.push({
@@ -222,16 +222,9 @@ export default function Page() {
       return;
     }
 
-    // Manifest (reliable even if browser blocks multi-download)
-    const manifest = {
-      savedAt: new Date().toISOString(),
-      count: items.length,
-      items,
-    };
-
+    const manifest = { savedAt: new Date().toISOString(), count: items.length, items };
     downloadTextFile(`vibescript_selected_media_${Date.now()}.json`, JSON.stringify(manifest, null, 2));
 
-    // Attempt to open downloads
     for (const item of items) {
       const link = document.createElement('a');
       link.href = item.downloadUrl;
@@ -284,12 +277,7 @@ export default function Page() {
 
   function saveSession() {
     try {
-      const payload = {
-        savedAt: new Date().toISOString(),
-        input,
-        result,
-        brollResults,
-      };
+      const payload = { savedAt: new Date().toISOString(), input, result, brollResults };
       localStorage.setItem(SESSION_KEY, JSON.stringify(payload));
       setError('');
     } catch (e: any) {
@@ -350,7 +338,6 @@ export default function Page() {
       const res = await fetch('/api/broll', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // ✅ send licenseKey to backend
         body: JSON.stringify({ licenseKey, queries, perQuery: 3 }),
       });
 
@@ -382,9 +369,8 @@ export default function Page() {
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // ✅ send licenseKey to backend
-      body: JSON.stringify({ licenseKey, queries, perQuery: 3 }),
-
+        // ✅ correct body for generate route
+        body: JSON.stringify({ licenseKey, input }),
       });
 
       const data = await res.json();
@@ -571,7 +557,6 @@ export default function Page() {
           <div style={{ marginTop: 12 }}>
             <label>Extras</label>
 
-            {/* Hooks + social captions toggle */}
             <div
               style={{
                 display: 'flex',
@@ -597,7 +582,6 @@ export default function Page() {
               <span className="badge">{includeHooksCaptions ? 'ON' : 'OFF'}</span>
             </div>
 
-            {/* B-roll media toggle */}
             <div
               style={{
                 display: 'flex',
@@ -626,19 +610,11 @@ export default function Page() {
           <div className="row" style={{ marginTop: 12 }}>
             <div>
               <label>Keywords (optional)</label>
-              <input
-                value={keywords}
-                onChange={(e) => setKeywords(e.target.value)}
-                placeholder="e.g., abundance, discipline, peace"
-              />
+              <input value={keywords} onChange={(e) => setKeywords(e.target.value)} placeholder="e.g., abundance, discipline, peace" />
             </div>
             <div>
               <label>Extra notes (optional)</label>
-              <input
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="e.g., include a CTA to save/share"
-              />
+              <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g., include a CTA to save/share" />
             </div>
           </div>
 
@@ -686,14 +662,11 @@ export default function Page() {
             <>
               <div className="row" style={{ marginBottom: 12 }}>
                 <button onClick={() => navigator.clipboard.writeText(result)}>Copy Output</button>
-                <button className="secondary" onClick={downloadTxt}>
-                  Download .txt
-                </button>
+                <button className="secondary" onClick={downloadTxt}>Download .txt</button>
               </div>
 
               <pre>{result}</pre>
 
-              {/* B-roll media section */}
               {includeBRoll && (
                 <>
                   <hr />
@@ -718,13 +691,7 @@ export default function Page() {
                   {brollResults.map((r, idx) => (
                     <div key={idx} style={{ marginBottom: 20 }}>
                       <div style={{ fontWeight: 700, marginTop: 6, marginBottom: 8 }}>Videos</div>
-                      <div
-                        style={{
-                          display: 'grid',
-                          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-                          gap: 10,
-                        }}
-                      >
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
                         {(r.videos || []).map((v: any) => {
                           const k = mediaKey('video', idx, v.id);
                           return (
@@ -753,21 +720,12 @@ export default function Page() {
                                   cursor: 'pointer',
                                 }}
                               >
-                                <input
-                                  type="checkbox"
-                                  checked={!!selectedMedia[k]}
-                                  onChange={() => toggleMedia(k)}
-                                  style={{ width: 16, height: 16 }}
-                                />
+                                <input type="checkbox" checked={!!selectedMedia[k]} onChange={() => toggleMedia(k)} style={{ width: 16, height: 16 }} />
                                 <span style={{ fontSize: 12 }}>Select</span>
                               </label>
 
                               {v.image && (
-                                <img
-                                  src={v.image}
-                                  alt="video thumbnail"
-                                  style={{ width: '100%', height: 110, objectFit: 'cover', display: 'block' }}
-                                />
+                                <img src={v.image} alt="video thumbnail" style={{ width: '100%', height: 110, objectFit: 'cover', display: 'block' }} />
                               )}
 
                               <div style={{ padding: 10 }}>
@@ -775,20 +733,10 @@ export default function Page() {
                                   {typeof v.duration === 'number' ? `Duration: ${v.duration}s` : 'Video'}
                                 </div>
                                 <div style={{ display: 'flex', gap: 8 }}>
-                                  <a
-                                    href={v.downloadUrl}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    style={{ color: 'var(--text)', textDecoration: 'underline' }}
-                                  >
+                                  <a href={v.downloadUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--text)', textDecoration: 'underline' }}>
                                     Download
                                   </a>
-                                  <a
-                                    href={v.pageUrl}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    style={{ color: 'var(--text)', textDecoration: 'underline' }}
-                                  >
+                                  <a href={v.pageUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--text)', textDecoration: 'underline' }}>
                                     View
                                   </a>
                                 </div>
@@ -799,13 +747,7 @@ export default function Page() {
                       </div>
 
                       <div style={{ fontWeight: 700, marginTop: 14, marginBottom: 8 }}>Photos</div>
-                      <div
-                        style={{
-                          display: 'grid',
-                          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-                          gap: 10,
-                        }}
-                      >
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
                         {(r.photos || []).map((p: any) => {
                           const k = mediaKey('photo', idx, p.id);
                           return (
@@ -834,40 +776,21 @@ export default function Page() {
                                   cursor: 'pointer',
                                 }}
                               >
-                                <input
-                                  type="checkbox"
-                                  checked={!!selectedMedia[k]}
-                                  onChange={() => toggleMedia(k)}
-                                  style={{ width: 16, height: 16 }}
-                                />
+                                <input type="checkbox" checked={!!selectedMedia[k]} onChange={() => toggleMedia(k)} style={{ width: 16, height: 16 }} />
                                 <span style={{ fontSize: 12 }}>Select</span>
                               </label>
 
                               {p.image && (
-                                <img
-                                  src={p.image}
-                                  alt="photo thumbnail"
-                                  style={{ width: '100%', height: 110, objectFit: 'cover', display: 'block' }}
-                                />
+                                <img src={p.image} alt="photo thumbnail" style={{ width: '100%', height: 110, objectFit: 'cover', display: 'block' }} />
                               )}
 
                               <div style={{ padding: 10 }}>
                                 <div className="small" style={{ marginBottom: 8 }}>Photo</div>
                                 <div style={{ display: 'flex', gap: 8 }}>
-                                  <a
-                                    href={p.downloadUrl}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    style={{ color: 'var(--text)', textDecoration: 'underline' }}
-                                  >
+                                  <a href={p.downloadUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--text)', textDecoration: 'underline' }}>
                                     Download
                                   </a>
-                                  <a
-                                    href={p.pageUrl}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    style={{ color: 'var(--text)', textDecoration: 'underline' }}
-                                  >
+                                  <a href={p.pageUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--text)', textDecoration: 'underline' }}>
                                     View
                                   </a>
                                 </div>
