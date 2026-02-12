@@ -26,11 +26,13 @@ function maxTokensFor(input: Input) {
 export async function POST(req: Request) {
   try {
     const body = (await req.json()) as Body;
-    const accessCode = normalizeCode(body.accessCode);
+   const licenseKey = String((body as any).licenseKey || '').trim();
+if (!licenseKey) {
+  return NextResponse.json({ error: 'Missing license key' }, { status: 400 });
+}
 
-    if (!isValidAccessCode(accessCode)) {
-      return NextResponse.json({ error: 'Invalid access code' }, { status: 401 });
-    }
+
+
 
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
